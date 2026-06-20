@@ -1,0 +1,8 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/finance", "destination": "/finance.html" },
+    { "source": "/manager", "destination": "/manager.html" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
