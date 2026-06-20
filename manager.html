@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moustachir — Dashboard Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --paper:#FAF8F4;
+  --paper-2:#F1ECE3;
+  --card:#FFFFFF;
+  --ink:#1C1B19;
+  --ink-soft:#5A5650;
+  --line:#E4DECF;
+  --terracotta:#C4622D;
+  --terracotta-dark:#A14E22;
+  --slate:#3A5A6B;
+  --olive:#6B7A3A;
+  --olive-soft:#DAE0C4;
+  --bordeaux:#8B3A4A;
+  --bordeaux-soft:#E6C8CD;
+  --amber:#B8862F;
+  --amber-soft:#EFDCB3;
+  --plum:#6B4A5E;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--paper-2);
+  color:var(--ink);
+  font-family:'Space Grotesk',sans-serif;
+  line-height:1.45;
+}
+.font-mono{font-family:'JetBrains Mono',monospace;}
+
+/* ===== TOP BAR ===== */
+.topbar{
+  background:var(--ink);
+  color:var(--paper);
+  padding:14px 28px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:14px;
+  border-radius:0 0 14px 14px;
+}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.logo-mark{
+  width:34px;height:34px;border-radius:9px;
+  background:var(--terracotta);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:600;font-size:17px;color:var(--paper);
+}
+.topbar-title{display:flex;flex-direction:column;}
+.topbar-title .t1{font-family:'Fraunces',serif;font-size:16px;font-weight:500;}
+.topbar-title .t2{font-family:'JetBrains Mono',monospace;font-size:10px;color:#C9C5BA;letter-spacing:0.06em;}
+.topbar-tabs{display:flex;gap:4px;}
+.ttab{
+  font-family:'JetBrains Mono',monospace;
+  font-size:12px;
+  padding:8px 16px;
+  border-radius:8px;
+  color:#C9C5BA;
+  background:none;border:none;cursor:pointer;
+}
+.ttab.active{background:rgba(250,248,244,0.12);color:var(--paper);}
+
+.page{padding:20px 28px 50px;max-width:1280px;margin:0 auto;}
+.view{display:none;}
+.view.active{display:block;}
+
+.section-label{display:flex;align-items:baseline;gap:10px;margin:26px 0 14px;}
+.section-label:first-child{margin-top:0;}
+.section-label .num{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);}
+.section-label h2{font-family:'Fraunces',serif;font-size:18px;font-weight:500;}
+.section-label .sub{font-size:12px;color:var(--ink-soft);}
+
+/* ===== KPI CARDS ===== */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:8px;}
+@media (max-width:880px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+.kpi-card{
+  border-radius:12px;
+  padding:16px 18px;
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  min-height:84px;
+  justify-content:center;
+}
+.kpi-card .kc-label{font-family:'JetBrains Mono',monospace;font-size:11px;opacity:0.85;}
+.kpi-card .kc-val{font-family:'Fraunces',serif;font-size:26px;font-weight:500;display:flex;align-items:baseline;gap:8px;}
+.kpi-card .kc-delta{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;opacity:0.95;}
+.bg-terracotta{background:linear-gradient(135deg,#C4622D,#A14E22);}
+.bg-slate{background:linear-gradient(135deg,#3A5A6B,#2A4452);}
+.bg-olive{background:linear-gradient(135deg,#6B7A3A,#535E2C);}
+.bg-plum{background:linear-gradient(135deg,#6B4A5E,#523848);}
+.bg-amber{background:linear-gradient(135deg,#B8862F,#8F6722);}
+.bg-bordeaux{background:linear-gradient(135deg,#8B3A4A,#6B2A37);}
+
+/* ===== CARD ===== */
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;}
+.card-title{font-family:'Fraunces',serif;font-size:15.5px;font-weight:500;margin-bottom:2px;}
+.card-sub{font-size:11.5px;color:var(--ink-soft);margin-bottom:12px;}
+.chart-wrap{height:230px;}
+.chart-wrap.tall{height:280px;}
+.chart-wrap.short{height:190px;}
+
+.panel-grid{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-bottom:14px;}
+.panel-grid.even{grid-template-columns:1fr 1fr;}
+@media (max-width:880px){.panel-grid,.panel-grid.even{grid-template-columns:1fr;}}
+
+/* ===== RANKING TABLE ===== */
+.perf-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+.perf-table th{
+  text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;
+  letter-spacing:0.03em;text-transform:uppercase;color:var(--ink-soft);
+  padding:8px 10px 8px 0;border-bottom:1px solid var(--line);
+}
+.perf-table td{padding:11px 10px 11px 0;border-bottom:1px solid var(--line);}
+.perf-table tr:last-child td{border-bottom:none;}
+.perf-name{display:flex;align-items:center;gap:8px;}
+.avatar{
+  width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;font-weight:600;color:#fff;flex-shrink:0;
+}
+.rate-tag{font-family:'JetBrains Mono',monospace;font-size:11px;padding:2px 8px;border-radius:10px;}
+.rate-high{background:var(--olive-soft);color:#3d4720;}
+.rate-mid{background:var(--amber-soft);color:#5c4318;}
+.rate-low{background:var(--bordeaux-soft);color:#6b2530;}
+.rank-badge{
+  font-family:'Fraunces',serif;font-size:14px;font-weight:500;
+  width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:var(--paper-2);color:var(--ink-soft);
+}
+.rank-badge.gold{background:#F0D998;color:#7a4d0f;}
+
+/* ===== HEATMAP ===== */
+.heatmap-wrap{overflow-x:auto;}
+.heatmap{width:100%;border-collapse:collapse;font-size:11.5px;}
+.heatmap th{
+  font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--ink-soft);
+  padding:8px 10px;text-align:center;white-space:nowrap;
+}
+.heatmap th.row-head{text-align:left;}
+.heatmap td{padding:0;text-align:center;}
+.heatmap .row-label{
+  font-size:12px;font-weight:500;padding:10px 12px;white-space:nowrap;text-align:left;
+}
+.hm-cell{
+  width:100%;height:46px;display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;
+}
+
+/* ===== FILTER BAR ===== */
+.filter-bar{
+  display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:14px 18px;margin-bottom:18px;
+}
+.filter-bar .fb-label{font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-soft);}
+.filter-bar select,.filter-bar input{
+  font-family:'Space Grotesk',sans-serif;font-size:12.5px;
+  padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--paper);color:var(--ink);
+}
+.preset-row{display:flex;gap:6px;margin-left:auto;}
+.preset-btn{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:6px 12px;border-radius:14px;
+  border:1px solid var(--line);background:var(--paper);color:var(--ink-soft);cursor:pointer;
+}
+.preset-btn.active{background:var(--terracotta);border-color:var(--terracotta);color:#fff;}
+
+/* ===== FUNNEL STEPS ===== */
+.funnel-mini{display:flex;gap:0;align-items:stretch;margin-bottom:6px;}
+.funnel-step-box{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:14px 8px;position:relative;
+}
+.funnel-step-box .fs-val{font-family:'Fraunces',serif;font-size:22px;font-weight:500;}
+.funnel-step-box .fs-lab{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-soft);text-align:center;margin-top:3px;}
+.funnel-arrow{display:flex;align-items:center;color:var(--ink-soft);font-size:14px;padding:0 4px;}
+.funnel-pct{font-family:'JetBrains Mono',monospace;font-size:9.5px;color:var(--ink-soft);text-align:center;margin-top:2px;}
+
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--terracotta);outline-offset:2px;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-mark">M</div>
+    <div class="topbar-title">
+      <span class="t1">Dashboard Manager</span>
+      <span class="t2">MOUSTACHIR.DZ — ÉVALUATION &amp; PILOTAGE</span>
+    </div>
+  </div>
+  <div class="topbar-tabs" role="tablist">
+    <button class="ttab active" data-view="perf" onclick="switchView('perf')">Performance commerciale</button>
+    <button class="ttab" data-view="stats" onclick="switchView('stats')">Statistiques générales</button>
+  </div>
+</div>
+
+<div class="page">
+
+<!-- ================= VUE 1 : PERFORMANCE COMMERCIALE ================= -->
+<div class="view active" id="view-perf">
+
+  <div class="section-label">
+    <span class="num font-mono">01 —</span>
+    <h2>Classement des commerciaux</h2>
+  </div>
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-sub">Conversion, revenu généré, leads traités, taille moyenne de deal, meetings tenus et cycle de vente moyen — tous les commerciaux, sans limite d'affichage</div>
+    <table class="perf-table">
+      <thead>
+        <tr><th></th><th>Commercial</th><th>Conversion</th><th>Revenu généré</th><th>Leads traités</th><th>Meetings</th><th>Cycle moyen</th><th>Taille moy. deal</th></tr>
+      </thead>
+      <tbody id="rankingBody"></tbody>
+    </table>
+  </div>
+
+  <div class="section-label">
+    <span class="num font-mono">02 —</span>
+    <h2>Performance opérationnelle globale</h2>
+    <span class="sub">Volume, délais, qualité de traitement — tous commerciaux confondus</span>
+  </div>
+  <div class="kpi-grid" id="opsKpiGrid" style="margin-bottom:18px;"></div>
+
+  <div class="panel-grid even">
+    <div class="card">
+      <div class="card-title">Temps moyen de traitement par service</div>
+      <div class="card-sub">Délai moyen entre prise en charge et clôture de mission, par branche</div>
+      <div class="chart-wrap short"><canvas id="chartTempsService"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Volume de missions par service</div>
+      <div class="card-sub">Répartition globale des missions traitées par branche</div>
+      <div class="chart-wrap short"><canvas id="chartMissionsService"></canvas></div>
+    </div>
+  </div>
+
+  <div class="section-label">
+    <span class="num font-mono">03 —</span>
+    <h2>Charge de travail et productivité par commercial</h2>
+    <span class="sub">Missions en cours, terminées, en attente, taux de réussite et réactivité — comparaison directe</span>
+  </div>
+  <div class="card" style="margin-bottom:18px;">
+    <table class="perf-table">
+      <thead>
+        <tr><th>Commercial</th><th>Missions totales</th><th>En cours</th><th>En attente</th><th>Terminées</th><th>Taux de réussite</th><th>Réactivité moy.</th></tr>
+      </thead>
+      <tbody id="workloadBody"></tbody>
+    </table>
+  </div>
+
+  <div class="panel-grid even">
+    <div class="card">
+      <div class="card-title">Répartition de la charge par commercial</div>
+      <div class="card-sub">Missions en cours vs en attente vs terminées</div>
+      <div class="chart-wrap"><canvas id="chartWorkload"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Taux de réussite vs réactivité</div>
+      <div class="card-sub">Qualité de traitement (%) comparée au délai de première réponse (heures)</div>
+      <div class="chart-wrap"><canvas id="chartReussiteReactivite"></canvas></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ================= VUE 2 : STATISTIQUES GENERALES ================= -->
+<div class="view" id="view-stats">
+
+  <div class="filter-bar">
+    <span class="fb-label">PÉRIODE</span>
+    <input type="date" id="statsDateFrom" value="2026-01-01">
+    <span style="color:var(--ink-soft);">→</span>
+    <input type="date" id="statsDateTo" value="2026-06-19">
+    <div class="preset-row">
+      <button class="preset-btn" data-range="3">3 mois</button>
+      <button class="preset-btn active" data-range="6">6 mois</button>
+      <button class="preset-btn" data-range="12">12 mois</button>
+    </div>
+  </div>
+
+  <div class="section-label">
+    <span class="num font-mono">FLUX LEAD → CLIENT —</span>
+    <h2>Vue d'ensemble du funnel</h2>
+  </div>
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-sub">Volume cumulé sur la période sélectionnée, toutes branches confondues</div>
+    <div class="funnel-mini" id="funnelMini"></div>
+  </div>
+
+  <div class="kpi-grid" id="statsKpiGrid" style="margin-bottom:18px;"></div>
+
+  <div class="panel-grid">
+    <div class="card">
+      <div class="card-title">Leads générés vs CPL moyen</div>
+      <div class="card-sub">Marketing — volume d'acquisition et coût par lead, par mois</div>
+      <div class="chart-wrap tall"><canvas id="chartLeadsCpl"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">Taux de conversion Lead → Client</div>
+      <div class="card-sub">Commercial — efficacité du pipeline dans le temps</div>
+      <div class="chart-wrap tall"><canvas id="chartConversion"></canvas></div>
+    </div>
+  </div>
+
+  <div class="panel-grid even">
+    <div class="card">
+      <div class="card-title">CA généré et marge</div>
+      <div class="card-sub">Finance — résultat final du flux Lead → Client</div>
+      <div class="chart-wrap"><canvas id="chartCaMarge"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">CAC dans le temps</div>
+      <div class="card-sub">Coût d'acquisition client — vue consolidée marketing + commercial</div>
+      <div class="chart-wrap"><canvas id="chartCac"></canvas></div>
+    </div>
+  </div>
+
+</div>
+
+</div><!-- /page -->
+
+<script>
+const DATA = {"commercials": ["Amel B.", "Yacine R.", "Sarah K.", "Mehdi T."], "sectors": ["Tech/Digital", "Retail", "Industrie", "Santé", "Services publics"], "branches": ["Consulting", "COM", "Academy"], "stages": ["founding", "seeking_funding", "existing", "idea_only"], "matrix_sector": {"Amel B.": {"Tech/Digital": 22, "Retail": 18, "Industrie": 18, "Santé": 23, "Services publics": 13}, "Yacine R.": {"Tech/Digital": 17, "Retail": 20, "Industrie": 16, "Santé": 15, "Services publics": 12}, "Sarah K.": {"Tech/Digital": 16, "Retail": 9, "Industrie": 11, "Santé": 11, "Services publics": 5}, "Mehdi T.": {"Tech/Digital": 9, "Retail": 9, "Industrie": 7, "Santé": 7, "Services publics": 3}}, "matrix_branch": {"Amel B.": {"Consulting": 19, "COM": 20, "Academy": 17}, "Yacine R.": {"Consulting": 16, "COM": 19, "Academy": 15}, "Sarah K.": {"Consulting": 11, "COM": 9, "Academy": 11}, "Mehdi T.": {"Consulting": 13, "COM": 9, "Academy": 3}}, "matrix_stage": {"Amel B.": {"founding": 27, "seeking_funding": 24, "existing": 21, "idea_only": 12}, "Yacine R.": {"founding": 21, "seeking_funding": 17, "existing": 19, "idea_only": 10}, "Sarah K.": {"founding": 17, "seeking_funding": 15, "existing": 11, "idea_only": 8}, "Mehdi T.": {"founding": 12, "seeking_funding": 13, "existing": 9, "idea_only": 5}}, "perf": {"Amel B.": {"conversion": 19, "revenue": 2.4, "leads": 68, "dealSize": 186, "meetings": 54, "cycle": 18}, "Yacine R.": {"conversion": 16, "revenue": 1.9, "leads": 54, "dealSize": 154, "meetings": 41, "cycle": 21}, "Sarah K.": {"conversion": 11, "revenue": 1.3, "leads": 71, "dealSize": 121, "meetings": 47, "cycle": 29}, "Mehdi T.": {"conversion": 8, "revenue": 0.8, "leads": 59, "dealSize": 98, "meetings": 33, "cycle": 34}}, "funnel": [{"month": "Jan", "leads": 210, "cpl": 3400, "qualifies": 143, "meetings": 86, "clients": 25, "conversion": 11.8, "ca": 2.1, "marge": 31, "cac": 48}, {"month": "Fév", "leads": 235, "cpl": 3300, "qualifies": 160, "meetings": 96, "clients": 29, "conversion": 12.4, "ca": 2.6, "marge": 32, "cac": 46}, {"month": "Mar", "leads": 260, "cpl": 3150, "qualifies": 177, "meetings": 107, "clients": 34, "conversion": 13.0, "ca": 2.9, "marge": 32.5, "cac": 45}, {"month": "Avr", "leads": 275, "cpl": 3050, "qualifies": 187, "meetings": 113, "clients": 37, "conversion": 13.5, "ca": 3.3, "marge": 33, "cac": 44}, {"month": "Mai", "leads": 298, "cpl": 2980, "qualifies": 203, "meetings": 122, "clients": 41, "conversion": 13.9, "ca": 3.6, "marge": 33.5, "cac": 43}, {"month": "Jun", "leads": 312, "cpl": 2900, "qualifies": 212, "meetings": 128, "clients": 44, "conversion": 14.2, "ca": 3.9, "marge": 34, "cac": 42}], "missions_data": {"Amel B.": {"total": 15, "en_cours": 6, "en_attente": 5, "terminees": 4, "taux_reussite": 92, "reactivite_h": 7.7}, "Yacine R.": {"total": 18, "en_cours": 9, "en_attente": 5, "terminees": 4, "taux_reussite": 84, "reactivite_h": 4.6}, "Sarah K.": {"total": 15, "en_cours": 7, "en_attente": 4, "terminees": 4, "taux_reussite": 83, "reactivite_h": 3.6}, "Mehdi T.": {"total": 11, "en_cours": 5, "en_attente": 2, "terminees": 4, "taux_reussite": 80, "reactivite_h": 8.7}}, "temps_traitement_service": {"Consulting": 18, "COM": 27, "Academy": 12}, "mission_par_service": {"Consulting": 25, "COM": 19, "Academy": 15}, "services": ["Consulting", "COM", "Academy"]};
+
+const inkSoft = '#5A5650';
+const line = '#E4DECF';
+Chart.defaults.font.family = "'Space Grotesk', sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = inkSoft;
+function baseGrid(){ return { color: line, drawTicks:false }; }
+
+function switchView(v){
+  document.querySelectorAll('.ttab').forEach(b=>b.classList.toggle('active', b.dataset.view===v));
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  if(v==='stats' && !window._statsRendered){ renderStats(); window._statsRendered = true; }
+}
+
+const AVATAR_COLORS = {'Amel B.':'#C4622D','Yacine R.':'#3A5A6B','Sarah K.':'#6B7A3A','Mehdi T.':'#8B3A4A'};
+function initials(name){ return name.split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase(); }
+function rateClass(v){ return v>=15?'rate-high': v>=10?'rate-mid':'rate-low'; }
+
+/* ===== RANKING TABLE ===== */
+function renderRanking(){
+  const rows = DATA.commercials.map(c=>({name:c, ...DATA.perf[c]}))
+    .sort((a,b)=>b.conversion-a.conversion);
+  document.getElementById('rankingBody').innerHTML = rows.map((r,i)=>`
+    <tr>
+      <td><span class="rank-badge ${i===0?'gold':''}">${i+1}</span></td>
+      <td><div class="perf-name"><span class="avatar" style="background:${AVATAR_COLORS[r.name]};">${initials(r.name)}</span>${r.name}</div></td>
+      <td><span class="rate-tag ${rateClass(r.conversion)} font-mono">${r.conversion}%</span></td>
+      <td class="font-mono">${r.revenue}M DZD</td>
+      <td class="font-mono">${r.leads}</td>
+      <td class="font-mono">${r.meetings}</td>
+      <td class="font-mono">${r.cycle}j</td>
+      <td class="font-mono">${r.dealSize}K DZD</td>
+    </tr>
+  `).join('');
+}
+
+/* ===== OPERATIONAL KPIs (global cards) ===== */
+function renderOpsKpis(){
+  const commercials = DATA.commercials;
+  const md = DATA.missions_data;
+  const totalMissions = commercials.reduce((s,c)=>s+md[c].total,0);
+  const totalEnCours = commercials.reduce((s,c)=>s+md[c].en_cours,0);
+  const totalEnAttente = commercials.reduce((s,c)=>s+md[c].en_attente,0);
+  const totalTerminees = commercials.reduce((s,c)=>s+md[c].terminees,0);
+  const avgReussite = Math.round(commercials.reduce((s,c)=>s+md[c].taux_reussite,0)/commercials.length);
+  const avgReactivite = (commercials.reduce((s,c)=>s+md[c].reactivite_h,0)/commercials.length).toFixed(1);
+  const avgTempsService = Math.round(DATA.services.reduce((s,sv)=>s+DATA.temps_traitement_service[sv],0)/DATA.services.length);
+
+  const cards = [
+    {label:'VOLUME DE MISSIONS (GLOBAL)', val:totalMissions, bg:'bg-terracotta'},
+    {label:'MISSIONS EN COURS', val:totalEnCours, bg:'bg-slate'},
+    {label:'MISSIONS EN ATTENTE', val:totalEnAttente, bg:'bg-amber'},
+    {label:'MISSIONS TERMINÉES', val:totalTerminees, bg:'bg-olive'},
+    {label:'TAUX DE RÉUSSITE MOYEN', val:avgReussite+'%', bg:'bg-olive'},
+    {label:'RÉACTIVITÉ MOYENNE', val:avgReactivite+'h', bg:'bg-plum'},
+    {label:'TEMPS MOYEN DE TRAITEMENT', val:avgTempsService+'j', bg:'bg-bordeaux'},
+    {label:'COMMERCIAUX SUIVIS', val:commercials.length, bg:'bg-terracotta'},
+  ];
+  document.getElementById('opsKpiGrid').innerHTML = cards.map(c=>`
+    <div class="kpi-card ${c.bg}">
+      <span class="kc-label">${c.label}</span>
+      <span class="kc-val">${c.val}</span>
+    </div>
+  `).join('');
+}
+
+/* ===== WORKLOAD TABLE (per commercial) ===== */
+function reussiteClass(v){ return v>=90?'rate-high': v>=82?'rate-mid':'rate-low'; }
+function reactiviteClass(v){ return v<=5?'rate-high': v<=9?'rate-mid':'rate-low'; }
+
+function renderWorkloadTable(){
+  const rows = DATA.commercials.map(c=>({name:c, ...DATA.missions_data[c]}))
+    .sort((a,b)=>b.total-a.total);
+  document.getElementById('workloadBody').innerHTML = rows.map(r=>`
+    <tr>
+      <td><div class="perf-name"><span class="avatar" style="background:${AVATAR_COLORS[r.name]};">${initials(r.name)}</span>${r.name}</div></td>
+      <td class="font-mono">${r.total}</td>
+      <td class="font-mono">${r.en_cours}</td>
+      <td class="font-mono">${r.en_attente}</td>
+      <td class="font-mono">${r.terminees}</td>
+      <td><span class="rate-tag ${reussiteClass(r.taux_reussite)} font-mono">${r.taux_reussite}%</span></td>
+      <td><span class="rate-tag ${reactiviteClass(r.reactivite_h)} font-mono">${r.reactivite_h}h</span></td>
+    </tr>
+  `).join('');
+}
+
+let perfCharts = {};
+function renderOpsCharts(){
+  const services = DATA.services;
+
+  if(perfCharts.temps) perfCharts.temps.destroy();
+  perfCharts.temps = new Chart(document.getElementById('chartTempsService'), {
+    type:'bar',
+    data:{ labels:services, datasets:[{ data:services.map(s=>DATA.temps_traitement_service[s]), backgroundColor:['#3A5A6B','#C4622D','#6B7A3A'], borderRadius:5, maxBarThickness:50 }] },
+    options:{ indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false}, tooltip:{callbacks:{label:(c)=>c.parsed.x+' jours'}} },
+      scales:{ x:{grid:baseGrid(), ticks:{callback:(v)=>v+'j'}}, y:{grid:{display:false}} } }
+  });
+
+  if(perfCharts.missionsService) perfCharts.missionsService.destroy();
+  perfCharts.missionsService = new Chart(document.getElementById('chartMissionsService'), {
+    type:'doughnut',
+    data:{ labels:services, datasets:[{ data:services.map(s=>DATA.mission_par_service[s]), backgroundColor:['#3A5A6B','#C4622D','#6B7A3A'], borderColor:'#FFFFFF', borderWidth:3 }] },
+    options:{ responsive:true, maintainAspectRatio:false, cutout:'60%',
+      plugins:{ legend:{ position:'bottom', labels:{boxWidth:9,padding:10,font:{size:10.5}} } } }
+  });
+
+  const commercials = DATA.commercials;
+  const md = DATA.missions_data;
+
+  if(perfCharts.workload) perfCharts.workload.destroy();
+  perfCharts.workload = new Chart(document.getElementById('chartWorkload'), {
+    type:'bar',
+    data:{ labels:commercials, datasets:[
+      { label:'En cours', data:commercials.map(c=>md[c].en_cours), backgroundColor:'#3A5A6B', borderRadius:4 },
+      { label:'En attente', data:commercials.map(c=>md[c].en_attente), backgroundColor:'#B8862F', borderRadius:4 },
+      { label:'Terminées', data:commercials.map(c=>md[c].terminees), backgroundColor:'#6B7A3A', borderRadius:4 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'top', align:'end', labels:{boxWidth:9,padding:8,font:{size:10.5}} } },
+      scales:{ x:{ stacked:true, grid:{display:false} }, y:{ stacked:true, grid:baseGrid() } } }
+  });
+
+  if(perfCharts.reussiteReactivite) perfCharts.reussiteReactivite.destroy();
+  perfCharts.reussiteReactivite = new Chart(document.getElementById('chartReussiteReactivite'), {
+    data:{ labels:commercials, datasets:[
+      { type:'bar', label:'Taux de réussite (%)', data:commercials.map(c=>md[c].taux_reussite), backgroundColor:'#6B7A3A', borderRadius:4, yAxisID:'y' },
+      { type:'line', label:'Réactivité (h)', data:commercials.map(c=>md[c].reactivite_h), borderColor:'#C4622D', backgroundColor:'#C4622D', tension:0.3, yAxisID:'y1', pointRadius:4 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'top', align:'end', labels:{boxWidth:9,padding:8,font:{size:10.5}} } },
+      scales:{
+        x:{ grid:{display:false} },
+        y:{ position:'left', grid:baseGrid(), title:{display:true,text:'Réussite (%)',font:{size:10}}, min:0, max:100 },
+        y1:{ position:'right', grid:{display:false}, title:{display:true,text:'Réactivité (h)',font:{size:10}} }
+      } }
+  });
+}
+
+/* ===== STATS TAB ===== */
+let statsCharts = {};
+function renderStats(){
+  renderFunnelMini();
+  renderStatsKpis();
+  renderStatsCharts();
+}
+
+function renderFunnelMini(){
+  const f = DATA.funnel;
+  const totals = {
+    leads: f.reduce((s,m)=>s+m.leads,0),
+    qualifies: f.reduce((s,m)=>s+m.qualifies,0),
+    meetings: f.reduce((s,m)=>s+m.meetings,0),
+    clients: f.reduce((s,m)=>s+m.clients,0),
+  };
+  const steps = [
+    {lab:'Leads générés', val:totals.leads, color:'#C4622D'},
+    {lab:'Qualifiés', val:totals.qualifies, color:'#B8862F'},
+    {lab:'Meetings tenus', val:totals.meetings, color:'#6B7A3A'},
+    {lab:'Clients signés', val:totals.clients, color:'#3A5A6B'},
+  ];
+  let html = '';
+  steps.forEach((s,i)=>{
+    const pct = i===0 ? 100 : Math.round(s.val/steps[0].val*100);
+    html += `<div class="funnel-step-box" style="background:${s.color}1A;">
+      <span class="fs-val" style="color:${s.color};">${s.val}</span>
+      <span class="fs-lab">${s.lab.toUpperCase()}</span>
+      <span class="funnel-pct">${pct}%</span>
+    </div>`;
+    if(i<steps.length-1) html += `<div class="funnel-arrow">→</div>`;
+  });
+  document.getElementById('funnelMini').innerHTML = html;
+}
+
+function renderStatsKpis(){
+  const f = DATA.funnel;
+  const totalLeads = f.reduce((s,m)=>s+m.leads,0);
+  const totalClients = f.reduce((s,m)=>s+m.clients,0);
+  const avgConv = (totalClients/totalLeads*100).toFixed(1);
+  const totalCa = f.reduce((s,m)=>s+m.ca,0).toFixed(1);
+  const avgMarge = (f.reduce((s,m)=>s+m.marge,0)/f.length).toFixed(1);
+  const avgCac = Math.round(f.reduce((s,m)=>s+m.cac,0)/f.length);
+  const avgCpl = Math.round(f.reduce((s,m)=>s+m.cpl,0)/f.length);
+
+  const cards = [
+    {label:'LEADS GÉNÉRÉS (PÉRIODE)', val:totalLeads, bg:'bg-terracotta'},
+    {label:'CONVERSION MOYENNE LEAD→CLIENT', val:avgConv+'%', bg:'bg-olive'},
+    {label:'CA CUMULÉ', val:totalCa+'M DZD', bg:'bg-slate'},
+    {label:'MARGE MOYENNE', val:avgMarge+'%', bg:'bg-plum'},
+    {label:'CAC MOYEN', val:avgCac+'K DZD', bg:'bg-amber'},
+    {label:'CPL MOYEN', val:avgCpl+' DZD', bg:'bg-bordeaux'},
+    {label:'CLIENTS SIGNÉS', val:totalClients, bg:'bg-terracotta'},
+    {label:'CA MOYEN / CLIENT', val:Math.round(totalCa*1000000/totalClients/1000)+'K DZD', bg:'bg-olive'},
+  ];
+  document.getElementById('statsKpiGrid').innerHTML = cards.map(c=>`
+    <div class="kpi-card ${c.bg}">
+      <span class="kc-label">${c.label}</span>
+      <span class="kc-val">${c.val}</span>
+    </div>
+  `).join('');
+}
+
+function renderStatsCharts(){
+  const f = DATA.funnel;
+  const labels = f.map(m=>m.month);
+
+  if(statsCharts.leadsCpl) statsCharts.leadsCpl.destroy();
+  statsCharts.leadsCpl = new Chart(document.getElementById('chartLeadsCpl'), {
+    data:{ labels, datasets:[
+      { type:'bar', label:'Leads', data:f.map(m=>m.leads), backgroundColor:'#C4622D', borderRadius:4, yAxisID:'y' },
+      { type:'line', label:'CPL (DZD)', data:f.map(m=>m.cpl), borderColor:'#3A5A6B', backgroundColor:'#3A5A6B', tension:0.3, yAxisID:'y1', pointRadius:3 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'top', align:'end', labels:{boxWidth:9,padding:8,font:{size:10.5}} } },
+      scales:{
+        x:{ grid:{display:false} },
+        y:{ position:'left', grid:baseGrid(), title:{display:true,text:'Leads',font:{size:10}} },
+        y1:{ position:'right', grid:{display:false}, title:{display:true,text:'CPL (DZD)',font:{size:10}} }
+      } }
+  });
+
+  if(statsCharts.conv) statsCharts.conv.destroy();
+  statsCharts.conv = new Chart(document.getElementById('chartConversion'), {
+    type:'line',
+    data:{ labels, datasets:[{ data:f.map(m=>m.conversion), borderColor:'#6B7A3A', backgroundColor:'rgba(107,122,58,0.1)', fill:true, tension:0.35, pointRadius:3, pointBackgroundColor:'#6B7A3A' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ x:{grid:{display:false}}, y:{grid:baseGrid(), ticks:{callback:(v)=>v+'%'}} } }
+  });
+
+  if(statsCharts.caMarge) statsCharts.caMarge.destroy();
+  statsCharts.caMarge = new Chart(document.getElementById('chartCaMarge'), {
+    data:{ labels, datasets:[
+      { type:'bar', label:'CA (M DZD)', data:f.map(m=>m.ca), backgroundColor:'#3A5A6B', borderRadius:4, yAxisID:'y' },
+      { type:'line', label:'Marge (%)', data:f.map(m=>m.marge), borderColor:'#C4622D', backgroundColor:'#C4622D', tension:0.3, yAxisID:'y1', pointRadius:3 }
+    ]},
+    options:{ responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ position:'top', align:'end', labels:{boxWidth:9,padding:8,font:{size:10.5}} } },
+      scales:{
+        x:{ grid:{display:false} },
+        y:{ position:'left', grid:baseGrid(), title:{display:true,text:'CA (M DZD)',font:{size:10}} },
+        y1:{ position:'right', grid:{display:false}, title:{display:true,text:'Marge (%)',font:{size:10}} }
+      } }
+  });
+
+  if(statsCharts.cac) statsCharts.cac.destroy();
+  statsCharts.cac = new Chart(document.getElementById('chartCac'), {
+    type:'line',
+    data:{ labels, datasets:[{ data:f.map(m=>m.cac), borderColor:'#B8862F', backgroundColor:'rgba(184,134,47,0.1)', fill:true, tension:0.35, pointRadius:3, pointBackgroundColor:'#B8862F' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{ x:{grid:{display:false}}, y:{grid:baseGrid(), ticks:{callback:(v)=>v+'K'}} } }
+  });
+}
+
+document.querySelectorAll('.preset-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const months = parseInt(btn.dataset.range);
+    const to = new Date('2026-06-19');
+    const from = new Date(to);
+    from.setMonth(from.getMonth()-months);
+    document.getElementById('statsDateFrom').value = from.toISOString().slice(0,10);
+    document.getElementById('statsDateTo').value = to.toISOString().slice(0,10);
+    // NOTE: with only 6 months of simulated data, this preset mainly adjusts the date pickers;
+    // the underlying funnel dataset stays at its available 6-month range.
+  });
+});
+
+renderRanking();
+renderOpsKpis();
+renderWorkloadTable();
+renderOpsCharts();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1770 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Moustachir — Gestion Financière</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+/* ===== TOKENS (même palette que leads-en-attente) ===== */
+:root{
+  --paper:#FAF8F4;
+  --paper-2:#F1ECE3;
+  --card:#FFFFFF;
+  --ink:#1C1B19;
+  --ink-soft:#5A5650;
+  --line:#E4DECF;
+  --terracotta:#C4622D;
+  --terracotta-dark:#A14E22;
+  --terracotta-soft:#F6E0D4;
+  --slate:#3A5A6B;
+  --slate-soft:#D0DDE3;
+  --olive:#6B7A3A;
+  --olive-soft:#DAE0C4;
+  --bordeaux:#8B3A4A;
+  --bordeaux-soft:#E6C8CD;
+  --amber:#B8862F;
+  --amber-soft:#EFDCB3;
+  --plum:#6B4A5E;
+  --plum-soft:#E2D4DC;
+  /* finance-specific */
+  --revenue:#3A6B4A;      /* vert sombre = entrée */
+  --revenue-soft:#C4E0CC;
+  --cost:#8B3A4A;         /* bordeaux = sortie */
+  --margin:#3A5A6B;       /* slate = marge */
+  --alert-bg:#FDF0EB;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--paper-2);
+  color:var(--ink);
+  font-family:'Space Grotesk',sans-serif;
+  line-height:1.45;
+  min-height:100vh;
+}
+.font-mono{font-family:'JetBrains Mono',monospace;}
+.font-serif{font-family:'Fraunces',serif;}
+
+/* ===== TOPBAR ===== */
+.topbar{
+  background:var(--ink);
+  color:var(--paper);
+  padding:14px 28px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:14px;
+  border-radius:0 0 14px 14px;
+  position:sticky;top:0;z-index:60;
+}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.logo-mark{
+  width:34px;height:34px;border-radius:9px;
+  background:var(--terracotta);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-weight:600;font-size:17px;color:var(--paper);
+}
+.topbar-title{display:flex;flex-direction:column;}
+.topbar-title .t1{font-family:'Fraunces',serif;font-size:16px;font-weight:500;}
+.topbar-title .t2{font-family:'JetBrains Mono',monospace;font-size:10px;color:#C9C5BA;letter-spacing:0.06em;}
+.flow-trail{
+  display:flex;align-items:center;gap:6px;
+  font-family:'JetBrains Mono',monospace;font-size:11px;color:#9C9890;
+}
+.flow-trail .step{padding:4px 9px;border-radius:6px;}
+.flow-trail .step.done{background:rgba(107,122,58,0.25);color:#C9D6A8;}
+.flow-trail .step.now{background:var(--terracotta);color:#fff;font-weight:500;}
+.topbar-actions{display:flex;gap:8px;}
+.topbar-btn{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  padding:7px 14px;border-radius:7px;
+  border:1px solid rgba(255,255,255,.18);
+  background:transparent;color:#C9C5BA;cursor:pointer;
+  display:flex;align-items:center;gap:6px;
+  transition:background .15s, color .15s;
+}
+.topbar-btn:hover{background:rgba(255,255,255,.1);color:#fff;}
+.topbar-btn.primary{background:var(--terracotta);border-color:var(--terracotta);color:#fff;}
+.topbar-btn.primary:hover{background:var(--terracotta-dark);}
+
+/* ===== NAV TABS ===== */
+.module-nav{
+  padding:14px 28px 0;
+  display:flex;gap:0;
+  border-bottom:1px solid var(--line);
+  overflow-x:auto;
+}
+.nav-tab{
+  font-family:'JetBrains Mono',monospace;font-size:11.5px;
+  padding:10px 18px;
+  border-bottom:2px solid transparent;
+  color:var(--ink-soft);cursor:pointer;
+  white-space:nowrap;transition:color .12s,border-color .12s;
+  background:none;border-top:none;border-left:none;border-right:none;
+}
+.nav-tab:hover{color:var(--ink);}
+.nav-tab.active{color:var(--terracotta);border-bottom-color:var(--terracotta);font-weight:600;}
+
+/* ===== VIEWS ===== */
+.view{display:none;}
+.view.active{display:block;}
+
+/* ===== PAGE HEAD ===== */
+.page-head{
+  padding:22px 28px 0;
+  display:flex;justify-content:space-between;align-items:flex-end;
+  flex-wrap:wrap;gap:14px;
+}
+.page-head h1{font-family:'Fraunces',serif;font-size:24px;font-weight:500;}
+.page-head .sub{font-size:13px;color:var(--ink-soft);margin-top:3px;}
+
+/* ===== ALERT STRIP ===== */
+.alert-strip{
+  margin:16px 28px 0;
+  background:var(--alert-bg);
+  border:1px solid #E8C5B3;
+  border-radius:10px;
+  padding:12px 16px;
+  display:flex;align-items:flex-start;gap:10px;
+  font-size:12.5px;
+}
+.alert-strip .al-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.alert-strip .al-body b{font-weight:600;}
+.alert-strip.green{background:#EDF5EF;border-color:#B8D8C0;}
+.alert-strip.slate{background:#EAF0F3;border-color:#B5CDD8;}
+
+/* ===== KPI STRIP ===== */
+.kpi-strip{
+  display:grid;
+  grid-template-columns:repeat(5,1fr);
+  gap:10px;padding:18px 28px 0;
+}
+@media(max-width:900px){.kpi-strip{grid-template-columns:repeat(2,1fr);}}
+.kpi-card{
+  background:var(--card);border:1px solid var(--line);
+  border-radius:10px;padding:14px 16px;
+  display:flex;flex-direction:column;gap:4px;
+  position:relative;overflow:hidden;
+}
+.kpi-card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+}
+.kpi-card.k-revenue::before{background:var(--revenue);}
+.kpi-card.k-cac::before{background:var(--amber);}
+.kpi-card.k-margin::before{background:var(--margin);}
+.kpi-card.k-growth::before{background:var(--olive);}
+.kpi-card.k-alert::before{background:var(--bordeaux);}
+.kpi-label{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-soft);}
+.kpi-value{font-family:'Fraunces',serif;font-size:26px;font-weight:500;line-height:1.1;}
+.kpi-value.revenue{color:var(--revenue);}
+.kpi-value.cost{color:var(--cost);}
+.kpi-value.margin{color:var(--margin);}
+.kpi-value.amber{color:var(--amber);}
+.kpi-value.warn{color:var(--bordeaux);}
+.kpi-sub{font-size:11.5px;color:var(--ink-soft);}
+.kpi-sub .up{color:var(--olive);}
+.kpi-sub .down{color:var(--bordeaux);}
+.kpi-sub .neutral{color:var(--amber);}
+
+/* ===== CHART GRID ===== */
+.chart-grid{
+  display:grid;
+  grid-template-columns:2fr 1fr;
+  gap:14px;
+  padding:16px 28px 0;
+}
+@media(max-width:900px){.chart-grid{grid-template-columns:1fr;}}
+.chart-grid-3{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:14px;
+  padding:16px 28px 0;
+}
+@media(max-width:900px){.chart-grid-3{grid-template-columns:1fr;}}
+.chart-card{
+  background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:18px 20px;
+}
+.chart-card.full{grid-column:1/-1;}
+.chart-title{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;
+  letter-spacing:0.04em;text-transform:uppercase;color:var(--ink-soft);
+  margin-bottom:6px;
+}
+.chart-headline{
+  font-family:'Fraunces',serif;font-size:15px;font-weight:400;
+  color:var(--ink);margin-bottom:14px;
+}
+.chart-wrap{position:relative;height:200px;}
+.chart-wrap.sm{height:150px;}
+.chart-wrap.lg{height:260px;}
+.chart-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11.5px;color:var(--ink-soft);}
+.legend-dot{width:9px;height:9px;border-radius:50%;}
+
+/* ===== SERVICE MARGINS TABLE (inside chart-card) ===== */
+.margin-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px;}
+.margin-table th{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);
+  padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;
+}
+.margin-table td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
+.margin-table tr:last-child td{border-bottom:none;}
+.margin-table tr:hover td{background:var(--paper);}
+.svc-tag{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;
+  padding:3px 9px;border-radius:10px;
+}
+.svc-com{background:var(--slate-soft);color:var(--slate);}
+.svc-consulting{background:var(--plum-soft);color:var(--plum);}
+.svc-academy{background:var(--olive-soft);color:#3d4720;}
+.svc-rentabilite{background:var(--amber-soft);color:#5c4318;}
+.svc-idarati{background:var(--bordeaux-soft);color:#6b2530;}
+.margin-bar-wrap{display:flex;align-items:center;gap:8px;}
+.margin-bar-bg{flex:1;height:5px;background:var(--paper-2);border-radius:3px;overflow:hidden;}
+.margin-bar-fill{height:100%;border-radius:3px;}
+.mono-num{font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:500;}
+
+/* ===== TOOLBAR ===== */
+.toolbar{
+  display:flex;gap:10px;align-items:center;
+  padding:16px 28px 0;flex-wrap:wrap;
+}
+.search-input{
+  flex:1;min-width:200px;
+  font-family:'Space Grotesk',sans-serif;font-size:13px;
+  padding:9px 14px;border:1px solid var(--line);
+  border-radius:8px;background:var(--card);color:var(--ink);
+}
+.filter-select{
+  font-family:'Space Grotesk',sans-serif;font-size:12.5px;
+  padding:9px 12px;border:1px solid var(--line);
+  border-radius:8px;background:var(--card);color:var(--ink);
+}
+.sort-pills{display:flex;gap:6px;}
+.sort-pill{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  padding:7px 13px;border-radius:14px;
+  border:1px solid var(--line);background:var(--card);
+  color:var(--ink-soft);cursor:pointer;white-space:nowrap;
+  transition:background .1s,color .1s;
+}
+.sort-pill.active{background:var(--ink);border-color:var(--ink);color:#fff;}
+
+/* ===== TABLE ===== */
+.table-wrap{
+  margin:16px 28px 0;
+  background:var(--card);border:1px solid var(--line);
+  border-radius:12px;overflow:hidden;
+}
+table{width:100%;border-collapse:collapse;font-size:12.5px;}
+thead th{
+  text-align:left;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;letter-spacing:0.03em;text-transform:uppercase;
+  color:var(--ink-soft);padding:12px 12px;
+  background:var(--paper-2);border-bottom:1px solid var(--line);white-space:nowrap;
+}
+tbody td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--paper);}
+
+/* ===== STATUS / TAGS ===== */
+.status-tag{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;
+  padding:3px 9px;border-radius:10px;white-space:nowrap;
+}
+.status-payee{background:var(--olive-soft);color:#3d4720;}
+.status-envoyee{background:var(--slate-soft);color:var(--slate);}
+.status-en-retard{background:var(--bordeaux-soft);color:#6b2530;}
+.status-brouillon{background:var(--paper-2);color:var(--ink-soft);border:1px solid var(--line);}
+.status-partiel{background:var(--amber-soft);color:#5c4318;}
+.status-annulee{background:#e5e5e5;color:#666;}
+
+.risk-tag{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;
+  padding:3px 9px;border-radius:10px;
+}
+.risk-faible{background:var(--olive-soft);color:#3d4720;}
+.risk-moyen{background:var(--amber-soft);color:#5c4318;}
+.risk-eleve{background:var(--bordeaux-soft);color:#6b2530;}
+
+/* ===== BUTTONS ===== */
+.btn-primary{
+  font-family:'JetBrains Mono',monospace;font-size:11.5px;
+  padding:9px 18px;border-radius:8px;
+  border:1px solid var(--terracotta);background:var(--terracotta);
+  color:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  transition:background .12s;
+}
+.btn-primary:hover{background:var(--terracotta-dark);}
+.btn-primary:disabled{opacity:.4;cursor:not-allowed;}
+.btn-secondary{
+  font-family:'JetBrains Mono',monospace;font-size:11.5px;
+  padding:9px 16px;border-radius:8px;
+  border:1px solid var(--line);background:var(--card);
+  color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+}
+.btn-secondary:hover{background:var(--paper);}
+.btn-slate{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  padding:7px 12px;border-radius:7px;
+  border:1px solid var(--slate);background:#fff;
+  color:var(--slate);cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.btn-slate:hover{background:var(--slate);color:#fff;}
+.btn-olive{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  padding:7px 12px;border-radius:7px;
+  border:1px solid var(--olive);background:#fff;
+  color:var(--olive);cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.btn-olive:hover{background:var(--olive);color:#fff;}
+.btn-bordeaux{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  padding:7px 12px;border-radius:7px;
+  border:1px solid var(--bordeaux);background:#fff;
+  color:var(--bordeaux);cursor:pointer;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.btn-bordeaux:hover{background:var(--bordeaux);color:#fff;}
+.icon-btn{
+  font-family:'JetBrains Mono',monospace;font-size:11px;
+  padding:6px 11px;border-radius:7px;
+  border:1px solid var(--line);background:var(--card);
+  color:var(--ink-soft);cursor:pointer;
+  display:inline-flex;align-items:center;gap:4px;
+}
+.icon-btn:hover{background:var(--paper-2);}
+
+/* ===== OVERLAY MODAL ===== */
+.overlay-backdrop{
+  position:fixed;inset:0;
+  background:rgba(28,27,25,.48);
+  display:none;align-items:flex-start;justify-content:center;
+  z-index:80;padding:40px 20px;overflow-y:auto;
+}
+.overlay-backdrop.show{display:flex;}
+.panel{
+  background:var(--card);border-radius:14px;
+  width:100%;max-width:680px;
+  padding:28px 30px;
+  box-shadow:0 24px 64px rgba(0,0,0,.22);
+  position:relative;
+}
+.panel.wide{max-width:860px;}
+.panel h3{font-family:'Fraunces',serif;font-size:20px;font-weight:500;margin-bottom:4px;}
+.panel .panel-sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:22px;}
+.panel-close{
+  position:absolute;top:18px;right:18px;
+  font-family:'JetBrains Mono',monospace;font-size:13px;
+  padding:5px 10px;border-radius:6px;
+  border:1px solid var(--line);background:var(--card);
+  color:var(--ink-soft);cursor:pointer;
+}
+.panel-close:hover{background:var(--paper);}
+.panel-actions{
+  display:flex;justify-content:flex-end;gap:10px;
+  margin-top:24px;padding-top:18px;border-top:1px solid var(--line);
+}
+
+/* ===== FORM ===== */
+.form-section-label{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;
+  letter-spacing:.04em;text-transform:uppercase;color:var(--terracotta);
+  margin:20px 0 10px;
+}
+.form-section-label:first-child{margin-top:0;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.form-row.single{grid-template-columns:1fr;}
+.form-row.third{grid-template-columns:1fr 1fr 1fr;}
+@media(max-width:560px){.form-row,.form-row.third{grid-template-columns:1fr;}}
+.field{display:flex;flex-direction:column;gap:6px;}
+.field label{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--ink-soft);}
+.field input,.field select,.field textarea{
+  font-family:'Space Grotesk',sans-serif;font-size:13px;
+  padding:10px 12px;border:1px solid var(--line);
+  border-radius:8px;background:var(--paper);color:var(--ink);width:100%;
+}
+.field input:focus,.field select:focus,.field textarea:focus{
+  outline:2px solid var(--terracotta);outline-offset:2px;
+}
+.field textarea{resize:vertical;min-height:80px;}
+.field .hint{font-size:11px;color:var(--ink-soft);}
+.field .computed{
+  font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;
+  padding:10px 12px;border:1px solid var(--line);border-radius:8px;
+  background:var(--paper-2);color:var(--ink);
+}
+
+/* ===== INVOICE LINE ITEMS ===== */
+.line-items-head{
+  display:grid;grid-template-columns:1fr 80px 90px 80px 110px 32px;
+  gap:8px;padding:8px 0 4px;
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  text-transform:uppercase;letter-spacing:.03em;color:var(--ink-soft);
+  border-bottom:1px solid var(--line);
+}
+.line-item-row{
+  display:grid;grid-template-columns:1fr 80px 90px 80px 110px 32px;
+  gap:8px;align-items:center;padding:8px 0;
+  border-bottom:1px solid var(--line);
+}
+.line-item-row:last-child{border-bottom:none;}
+.line-item-row input,.line-item-row select{
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  padding:6px 8px;border:1px solid var(--line);border-radius:6px;
+  background:var(--paper);color:var(--ink);width:100%;
+}
+.li-total{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--ink);}
+.li-remove{
+  width:28px;height:28px;border-radius:6px;border:1px solid var(--bordeaux-soft);
+  background:#fff;color:var(--bordeaux);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+}
+.li-remove:hover{background:var(--bordeaux);color:#fff;}
+.invoice-totals{
+  background:var(--paper-2);border:1px solid var(--line);
+  border-radius:10px;padding:14px 16px;margin-top:12px;
+  display:flex;flex-direction:column;gap:6px;
+}
+.totals-row{display:flex;justify-content:space-between;font-size:13px;}
+.totals-row.grand{
+  font-family:'Fraunces',serif;font-size:17px;font-weight:500;
+  padding-top:8px;margin-top:4px;border-top:1px solid var(--line);
+}
+.totals-row.grand .mono-num{font-size:17px;}
+.add-line-btn{
+  font-family:'JetBrains Mono',monospace;font-size:11.5px;
+  padding:8px 14px;border-radius:8px;
+  border:1px dashed var(--terracotta);
+  background:var(--terracotta-soft);color:var(--terracotta);
+  cursor:pointer;display:inline-flex;align-items:center;gap:5px;
+  margin-top:8px;transition:background .12s;
+}
+.add-line-btn:hover{background:#EDD4C5;}
+
+/* ===== RENTABILITÉ AUTO-CALC BOX ===== */
+.rentab-calc{
+  background:var(--amber-soft);border:1px solid #DFC07A;
+  border-radius:10px;padding:16px 18px;margin-top:14px;
+}
+.rentab-calc .rc-title{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;
+  text-transform:uppercase;letter-spacing:.04em;color:#5c4318;margin-bottom:10px;
+}
+.rc-line{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid rgba(184,134,47,.25);}
+.rc-line:last-child{border-bottom:none;font-weight:600;padding-top:8px;margin-top:2px;border-top:1px solid rgba(184,134,47,.4);}
+.rc-line .label{color:#5c4318;}
+.rc-line .value{font-family:'JetBrains Mono',monospace;font-weight:600;color:var(--amber);}
+
+/* ===== INNOVATION PANEL ===== */
+.ideas-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  gap:12px;padding:16px 28px 0;
+}
+@media(max-width:900px){.ideas-grid{grid-template-columns:1fr;}}
+.idea-card{
+  background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:18px;
+  display:flex;flex-direction:column;gap:8px;
+  transition:border-color .15s,box-shadow .15s;
+}
+.idea-card:hover{border-color:var(--terracotta);box-shadow:0 4px 16px rgba(196,98,45,.12);}
+.idea-icon{font-size:24px;margin-bottom:4px;}
+.idea-title{font-family:'Fraunces',serif;font-size:15px;font-weight:500;}
+.idea-desc{font-size:12.5px;color:var(--ink-soft);line-height:1.5;}
+.idea-tag{
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+  padding:2px 8px;border-radius:8px;
+  display:inline-block;margin-top:2px;
+}
+.tag-auto{background:var(--olive-soft);color:#3d4720;}
+.tag-insight{background:var(--slate-soft);color:var(--slate);}
+.tag-ux{background:var(--plum-soft);color:var(--plum);}
+.tag-alert{background:var(--bordeaux-soft);color:#6b2530;}
+.tag-integration{background:var(--amber-soft);color:#5c4318;}
+
+/* ===== RISK MATRIX ===== */
+.risk-grid{
+  display:grid;grid-template-columns:2fr 1fr;
+  gap:14px;padding:16px 28px 0;
+}
+@media(max-width:900px){.risk-grid{grid-template-columns:1fr;}}
+
+/* ===== PAGINATION ===== */
+.pagination{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:14px 28px 40px;flex-wrap:wrap;gap:12px;
+}
+.page-info{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--ink-soft);}
+.page-controls{display:flex;gap:6px;}
+.page-btn{
+  font-family:'JetBrains Mono',monospace;font-size:12px;
+  padding:7px 12px;border:1px solid var(--line);
+  border-radius:7px;background:var(--card);color:var(--ink);cursor:pointer;
+}
+.page-btn:hover{background:var(--paper);}
+.page-btn.active{background:var(--terracotta);border-color:var(--terracotta);color:#fff;}
+
+/* ===== BOTTOM SPACER ===== */
+.spacer{height:40px;}
+
+/* ===== TOAST ===== */
+.toast{
+  position:fixed;bottom:24px;right:24px;
+  background:var(--ink);color:#fff;
+  padding:14px 20px;border-radius:10px;font-size:13px;
+  display:flex;align-items:center;gap:10px;
+  box-shadow:0 8px 24px rgba(0,0,0,.18);
+  transform:translateY(20px);opacity:0;pointer-events:none;
+  transition:all .25s ease;z-index:100;
+}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast-icon{color:#9CAD63;}
+
+/* ===== INPUT PIPELINE FEED ===== */
+.pipeline-feed{
+  background:var(--paper);border:1px solid var(--line);
+  border-radius:10px;padding:14px 16px;
+  font-size:12.5px;line-height:1.6;
+  display:flex;flex-direction:column;gap:10px;
+}
+.feed-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:10px 12px;background:var(--card);
+  border:1px solid var(--line);border-radius:8px;cursor:pointer;
+  transition:border-color .12s;
+}
+.feed-item:hover{border-color:var(--terracotta);}
+.feed-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:4px;}
+.feed-dot.won{background:var(--olive);}
+.feed-dot.proposal{background:var(--amber);}
+.feed-dot.negotiation{background:var(--slate);}
+.feed-body{flex:1;}
+.feed-name{font-weight:600;font-size:13px;}
+.feed-detail{color:var(--ink-soft);font-size:11.5px;}
+.feed-value{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--revenue);white-space:nowrap;}
+.feed-action{
+  font-family:'JetBrains Mono',monospace;font-size:10.5px;
+  padding:4px 10px;border-radius:6px;
+  border:1px solid var(--terracotta);color:var(--terracotta);
+  background:#fff;cursor:pointer;white-space:nowrap;
+}
+.feed-action:hover{background:var(--terracotta);color:#fff;}
+
+/* ===== PROFIT INDICATOR ===== */
+.profit-indicator{
+  display:flex;align-items:center;gap:6px;font-size:12.5px;
+}
+.profit-arrow{font-size:14px;}
+.profit-arrow.up{color:var(--revenue);}
+.profit-arrow.down{color:var(--bordeaux);}
+
+button:focus-visible,select:focus-visible,input:focus-visible{
+  outline:2px solid var(--terracotta);outline-offset:2px;
+}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo-mark">M</div>
+    <div class="topbar-title">
+      <span class="t1">Gestion Financière</span>
+      <span class="t2">MOUSTACHIR.DZ — AXE 1 PERFORMANCE FINANCIÈRE</span>
+    </div>
+  </div>
+  <div class="flow-trail" aria-label="Module courant">
+    <span class="step done">C1 Commercial</span>
+    <span style="opacity:.5">→</span>
+    <span class="step now">F1 Finance</span>
+    <span style="opacity:.5">→</span>
+    <span class="step">F2 Reporting</span>
+  </div>
+  <div class="topbar-actions">
+    <button class="topbar-btn" onclick="exportData()">↓ Exporter</button>
+    <button class="topbar-btn primary" onclick="openFacture()">+ Nouvelle facture</button>
+  </div>
+</div>
+
+<!-- MODULE NAV -->
+<div class="module-nav">
+  <button class="nav-tab active" onclick="switchView('v-dashboard',this)">Tableau de bord</button>
+  <button class="nav-tab" onclick="switchView('v-pipeline-input',this)">Entrées commerciales</button>
+  <button class="nav-tab" onclick="switchView('v-factures',this)">Factures</button>
+  <button class="nav-tab" onclick="switchView('v-marges',this)">Marges par service</button>
+  <button class="nav-tab" onclick="switchView('v-clients-fin',this)">Profils clients</button>
+  <button class="nav-tab" onclick="switchView('v-risques',this)">Risques & créances</button>
+  <button class="nav-tab" onclick="switchView('v-innovations',this)">Idées & innovations</button>
+</div>
+
+<!-- ============================================================
+     VUE 1 — DASHBOARD
+     ============================================================ -->
+<div class="view active" id="v-dashboard">
+
+<div class="page-head">
+  <div>
+    <h1>Vue d'ensemble financière</h1>
+    <div class="sub">CA · Taux de croissance · CAC · Marge réelle par service — données consolidées juin 2026</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <select class="filter-select" id="periodFilter" onchange="updateDashPeriod()">
+      <option value="ytd">YTD 2026</option>
+      <option value="q2">T2 2026</option>
+      <option value="q1">T1 2026</option>
+      <option value="12m">12 mois glissants</option>
+    </select>
+  </div>
+</div>
+
+<div class="alert-strip">
+  <div class="al-icon">⚠️</div>
+  <div class="al-body">
+    <b>Données commerciales partielles :</b> aucun statut de conversion enregistré sur 1 593 leads.
+    Le CAC et le ROI campagnes sont des estimations jusqu'à adoption complète du CRM.
+    <span style="color:var(--terracotta);cursor:pointer;text-decoration:underline;" onclick="switchView('v-pipeline-input',document.querySelectorAll('.nav-tab')[1])"> → Voir les entrées commerciales</span>
+  </div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-strip">
+  <div class="kpi-card k-revenue">
+    <div class="kpi-label">CA HT — YTD</div>
+    <div class="kpi-value revenue" id="kpi-ca">9 150 000</div>
+    <div class="kpi-sub">DZD encaissé · <span class="up">↑ +18% vs 2025</span></div>
+  </div>
+  <div class="kpi-card k-growth">
+    <div class="kpi-label">Taux de croissance</div>
+    <div class="kpi-value amber" id="kpi-growth">+18%</div>
+    <div class="kpi-sub">vs N−1 · <span class="neutral">Cible : +25%</span></div>
+  </div>
+  <div class="kpi-card k-cac">
+    <div class="kpi-label">CAC estimé</div>
+    <div class="kpi-value amber" id="kpi-cac">193 DZD</div>
+    <div class="kpi-sub">par lead · dépense totale 307 K DZD</div>
+  </div>
+  <div class="kpi-card k-margin">
+    <div class="kpi-label">Marge brute moy.</div>
+    <div class="kpi-value margin" id="kpi-margin">42%</div>
+    <div class="kpi-sub">toutes lignes · <span class="up">↑ 4 pts vs T1</span></div>
+  </div>
+  <div class="kpi-card k-alert">
+    <div class="kpi-label">Créances en retard</div>
+    <div class="kpi-value warn" id="kpi-overdue">380 800</div>
+    <div class="kpi-sub">DZD · <span class="down">1 client — Jemmy Corp</span></div>
+  </div>
+</div>
+
+<!-- CHARTS -->
+<div class="chart-grid">
+  <div class="chart-card">
+    <div class="chart-title">Évolution du chiffre d'affaires</div>
+    <div class="chart-headline">CA mensuel HT — budgété vs réalisé</div>
+    <div class="chart-wrap lg"><canvas id="chart-ca-evol"></canvas></div>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--revenue)"></div>Réalisé</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--line)"></div>Budgété</div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Répartition CA par service</div>
+    <div class="chart-headline">Structure des revenus</div>
+    <div class="chart-wrap"><canvas id="chart-ca-repartition"></canvas></div>
+  </div>
+</div>
+
+<div class="chart-grid-3">
+  <div class="chart-card">
+    <div class="chart-title">CAC par canal d'acquisition</div>
+    <div class="chart-headline">Coût par lead capturé</div>
+    <div class="chart-wrap sm"><canvas id="chart-cac-canal"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Marge brute par service</div>
+    <div class="chart-headline">% de marge sur CA</div>
+    <div class="chart-wrap sm"><canvas id="chart-margin-service"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Statut des factures</div>
+    <div class="chart-headline">En valeur TTC</div>
+    <div class="chart-wrap sm"><canvas id="chart-inv-status"></canvas></div>
+  </div>
+</div>
+
+<div class="spacer"></div>
+</div>
+
+<!-- ============================================================
+     VUE 2 — ENTRÉES COMMERCIALES (INPUT FROM COMMERCIAL)
+     ============================================================ -->
+<div class="view" id="v-pipeline-input">
+
+<div class="page-head">
+  <div>
+    <h1>Entrées issues du commercial</h1>
+    <div class="sub">Les opportunités gagnées ou en négociation avancée alimentent automatiquement la facturation. Cliquez « Générer facture » pour convertir.</div>
+  </div>
+</div>
+
+<div class="alert-strip green">
+  <div class="al-icon">🔗</div>
+  <div class="al-body">
+    <b>Pipeline commercial → Finance :</b> les opportunités à stade <b>Gagné</b> ou <b>Négociation</b> remontent ici.
+    L'équipe financière convertit en devis ou facture en un clic, sans re-saisie.
+  </div>
+</div>
+
+<div style="padding:16px 28px 0;">
+  <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);margin-bottom:10px;">Opportunités à facturer — flux temps réel</div>
+  <div class="pipeline-feed" id="pipeline-feed-list"></div>
+</div>
+
+<div class="table-wrap" style="margin-top:20px;">
+  <table>
+    <thead>
+      <tr>
+        <th>Lead / Client</th>
+        <th>Service</th>
+        <th>Commercial</th>
+        <th>Stade CRM</th>
+        <th>Montant estimé HT</th>
+        <th>Score</th>
+        <th>Date opportunité</th>
+        <th>Action finance</th>
+      </tr>
+    </thead>
+    <tbody id="pipeline-table-body"></tbody>
+  </table>
+</div>
+<div class="spacer"></div>
+</div>
+
+<!-- ============================================================
+     VUE 3 — FACTURES
+     ============================================================ -->
+<div class="view" id="v-factures">
+
+<div class="page-head">
+  <div>
+    <h1>Factures</h1>
+    <div class="sub">Historique complet — création, suivi, relance, encaissement</div>
+  </div>
+  <button class="btn-primary" onclick="openFacture()">+ Nouvelle facture</button>
+</div>
+
+<!-- Summary strip -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:16px 28px 0;">
+  <div class="kpi-card k-revenue" style="cursor:pointer;" onclick="filterInv('')">
+    <div class="kpi-label">Total émis</div>
+    <div class="kpi-value revenue" style="font-size:18px;">2 380 000</div>
+    <div class="kpi-sub">DZD TTC · 5 factures</div>
+  </div>
+  <div class="kpi-card k-growth" style="cursor:pointer;" onclick="filterInv('Payée')">
+    <div class="kpi-label">Encaissé</div>
+    <div class="kpi-value revenue" style="font-size:18px;">1 582 700</div>
+    <div class="kpi-sub">DZD · 2 factures payées</div>
+  </div>
+  <div class="kpi-card k-cac" style="cursor:pointer;" onclick="filterInv('En retard')">
+    <div class="kpi-label">En retard</div>
+    <div class="kpi-value warn" style="font-size:18px;">380 800</div>
+    <div class="kpi-sub">DZD · 1 facture</div>
+  </div>
+  <div class="kpi-card k-alert" style="cursor:pointer;" onclick="filterInv('Envoyée')">
+    <div class="kpi-label">En attente</div>
+    <div class="kpi-value amber" style="font-size:18px;">416 500</div>
+    <div class="kpi-sub">DZD · 2 factures</div>
+  </div>
+</div>
+
+<div class="toolbar">
+  <input type="text" class="search-input" id="invSearch" placeholder="Rechercher par N°, client, service…" oninput="renderInvoices()">
+  <select class="filter-select" id="invStatusFilter" onchange="renderInvoices()">
+    <option value="">Tous les statuts</option>
+    <option value="Payée">Payée</option>
+    <option value="Envoyée">Envoyée</option>
+    <option value="En retard">En retard</option>
+    <option value="Brouillon">Brouillon</option>
+    <option value="Partiel">Paiement partiel</option>
+  </select>
+  <select class="filter-select" id="invSvcFilter" onchange="renderInvoices()">
+    <option value="">Tous les services</option>
+    <option value="COM">COM</option>
+    <option value="Consulting">Consulting</option>
+    <option value="Academy">Academy</option>
+    <option value="Rentabilité">Rentabilité</option>
+    <option value="Idarati">Idarati</option>
+  </select>
+  <div class="sort-pills">
+    <button class="sort-pill active" onclick="sortInv('date',this)">Récentes</button>
+    <button class="sort-pill" onclick="sortInv('montant',this)">Montant ↓</button>
+    <button class="sort-pill" onclick="sortInv('echeance',this)">Échéance</button>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>N° Facture</th>
+        <th>Client</th>
+        <th>Service</th>
+        <th>HT</th>
+        <th>TVA</th>
+        <th>TTC</th>
+        <th>Statut</th>
+        <th>Échéance</th>
+        <th>Retard</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="inv-table-body"></tbody>
+  </table>
+</div>
+<div class="pagination">
+  <div class="page-info" id="inv-page-info">—</div>
+  <div class="page-controls" id="inv-page-controls"></div>
+</div>
+</div>
+
+<!-- ============================================================
+     VUE 4 — MARGES PAR SERVICE
+     ============================================================ -->
+<div class="view" id="v-marges">
+
+<div class="page-head">
+  <div>
+    <h1>Marge réelle par service</h1>
+    <div class="sub">Revenus · coûts directs · marge brute · marge nette — décomposé par ligne de service</div>
+  </div>
+</div>
+
+<div class="alert-strip slate">
+  <div class="al-icon">💡</div>
+  <div class="al-body">
+    <b>Lecture :</b> la marge brute exclut les charges fixes (loyer, salaires fixes, outils). La marge nette intègre le CAC et la part de frais généraux allouée à chaque service.
+  </div>
+</div>
+
+<div class="chart-grid" style="margin-top:14px;">
+  <div class="chart-card">
+    <div class="chart-title">Marge brute vs nette par service</div>
+    <div class="chart-headline">Comparaison des deux niveaux de marge</div>
+    <div class="chart-wrap lg"><canvas id="chart-margins-compare"></canvas></div>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:var(--revenue)"></div>Marge brute</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--slate)"></div>Marge nette</div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">CA réalisé vs coûts directs</div>
+    <div class="chart-headline">Structure entrées / sorties</div>
+    <div class="chart-wrap lg"><canvas id="chart-revenue-cost"></canvas></div>
+  </div>
+</div>
+
+<div class="table-wrap" style="margin-top:16px;">
+  <div style="padding:14px 16px;border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);">Détail par ligne de service</div>
+  <table>
+    <thead>
+      <tr>
+        <th>Service</th>
+        <th>CA HT (DZD)</th>
+        <th>Coûts directs</th>
+        <th>Marge brute</th>
+        <th>CAC alloué</th>
+        <th>Charges fixes</th>
+        <th>Marge nette</th>
+        <th>Tendance</th>
+      </tr>
+    </thead>
+    <tbody id="margin-table-body"></tbody>
+  </table>
+</div>
+
+<!-- Insights -->
+<div class="chart-grid-3" style="margin-top:14px;">
+  <div class="chart-card" style="grid-column:1/-1">
+    <div class="chart-title">Diagnostics automatiques — questions clés</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:10px;" id="diagnostic-cards"></div>
+  </div>
+</div>
+<div class="spacer"></div>
+</div>
+
+<!-- ============================================================
+     VUE 5 — PROFILS CLIENTS FINANCIERS
+     ============================================================ -->
+<div class="view" id="v-clients-fin">
+
+<div class="page-head">
+  <div>
+    <h1>Profils financiers clients</h1>
+    <div class="sub">LTV · historique de paiement · comportement · risque — alimenté par le pipeline commercial</div>
+  </div>
+</div>
+
+<div class="table-wrap" style="margin-top:16px;">
+  <table>
+    <thead>
+      <tr>
+        <th>Client</th>
+        <th>Service(s)</th>
+        <th>CA total HT</th>
+        <th>Encaissé</th>
+        <th>Créance</th>
+        <th>Délai moyen</th>
+        <th>LTV Score</th>
+        <th>Risque</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="clients-fin-body"></tbody>
+  </table>
+</div>
+
+<div class="chart-grid" style="margin-top:14px;">
+  <div class="chart-card">
+    <div class="chart-title">LTV par client (DZD)</div>
+    <div class="chart-wrap"><canvas id="chart-ltv"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Délai de paiement moyen (jours)</div>
+    <div class="chart-wrap"><canvas id="chart-delay"></canvas></div>
+  </div>
+</div>
+<div class="spacer"></div>
+</div>
+
+<!-- ============================================================
+     VUE 6 — RISQUES & CRÉANCES
+     ============================================================ -->
+<div class="view" id="v-risques">
+
+<div class="page-head">
+  <div>
+    <h1>Risques financiers & créances</h1>
+    <div class="sub">Scoring de risque automatique · relances programmées · vieillissement des créances</div>
+  </div>
+</div>
+
+<div class="alert-strip">
+  <div class="al-icon">🔴</div>
+  <div class="al-body">
+    <b>Alerte critique :</b> Jemmy Corp — 380 800 DZD en retard de <b>32 jours</b>. Aucun plan de règlement convenu. Escalade requise.
+    <button class="btn-bordeaux" style="margin-left:12px;font-size:10.5px;padding:5px 10px;" onclick="openRelance('Jemmy Corp')">Envoyer relance</button>
+  </div>
+</div>
+
+<div class="risk-grid">
+  <div>
+    <div class="table-wrap" style="margin:14px 0 0;">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--line);font-family:'JetBrains Mono',monospace;font-size:10.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--ink-soft);">Vieillissement des créances</div>
+      <table>
+        <thead>
+          <tr>
+            <th>Client</th><th>Montant TTC</th><th>Jours retard</th><th>Tranche</th><th>Score risque</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="risk-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div>
+    <div class="chart-card" style="margin-top:14px;">
+      <div class="chart-title">Vieillissement — répartition</div>
+      <div class="chart-wrap"><canvas id="chart-aging"></canvas></div>
+    </div>
+    <div class="chart-card" style="margin-top:12px;">
+      <div class="chart-title">Relances planifiées</div>
+      <div style="font-size:12.5px;color:var(--ink-soft);margin-top:8px;display:flex;flex-direction:column;gap:8px;" id="relance-list"></div>
+    </div>
+  </div>
+</div>
+<div class="spacer"></div>
+</div>
+
+<!-- ============================================================
+     VUE 7 — INNOVATIONS & IDÉES
+     ============================================================ -->
+<div class="view" id="v-innovations">
+
+<div class="page-head">
+  <div>
+    <h1>Idées & innovations pour la finance</h1>
+    <div class="sub">Fonctionnalités innovantes pour améliorer et automatiser la gestion financière de Moustachir — priorisées par impact</div>
+  </div>
+</div>
+
+<div class="ideas-grid" id="ideas-grid"></div>
+<div class="spacer"></div>
+</div>
+
+<!-- ============================================================
+     MODAL — NOUVELLE FACTURE
+     ============================================================ -->
+<div class="overlay-backdrop" id="overlay-facture">
+<div class="panel wide">
+  <button class="panel-close" onclick="closeFacture()">✕ Fermer</button>
+  <h3>Nouvelle facture</h3>
+  <div class="panel-sub">Les données client et montant sont pré-remplies depuis l'opportunité commerciale sélectionnée.</div>
+
+  <!-- Source depuis pipeline -->
+  <div style="background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.04em;">Source :</div>
+    <select class="filter-select" id="fac-source" onchange="prefillFromSource()" style="flex:1;background:var(--card);">
+      <option value="">— Opportunité commerciale ou client existant —</option>
+      <option value="saifi">SAIFI Tarek — Rentabilité — 500 000 DZD HT</option>
+      <option value="yakid">Yakid Promotion — COM Corporate — 120 000 DZD HT</option>
+      <option value="toufik">Toufik / ZR Express — Consulting — 450 000 DZD HT</option>
+      <option value="mdi">MDI Algiers — Academy — 200 000 DZD HT</option>
+      <option value="vms">VMS Algeria — Rentabilité — 850 000 DZD HT</option>
+      <option value="manual">→ Saisie manuelle</option>
+    </select>
+  </div>
+
+  <div class="form-section-label">Informations générales</div>
+  <div class="form-row third">
+    <div class="field"><label>N° Facture</label><input type="text" id="fac-num" value="INV-2026-046" readonly style="background:var(--paper-2);"></div>
+    <div class="field"><label>Date d'émission</label><input type="date" id="fac-date" value="2026-06-20"></div>
+    <div class="field"><label>Date d'échéance</label><input type="date" id="fac-echeance" value="2026-07-20"></div>
+  </div>
+  <div class="form-row">
+    <div class="field"><label>Client</label><input type="text" id="fac-client" placeholder="Raison sociale ou nom"></div>
+    <div class="field"><label>Service Moustachir</label>
+      <select id="fac-service" onchange="onServiceChange()">
+        <option value="">— Sélectionner —</option>
+        <option value="COM">Moustachir COM</option>
+        <option value="Consulting">Moustachir Consulting</option>
+        <option value="Academy">Moustachir Academy</option>
+        <option value="Rentabilité">Moustachir Rentabilité</option>
+        <option value="Idarati">Idarati Company</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="form-section-label">Lignes de facturation</div>
+  <div class="line-items-head">
+    <div>Description</div><div>Qté</div><div>Prix unit. HT</div><div>TVA %</div><div>Total TTC</div><div></div>
+  </div>
+  <div id="line-items-container"></div>
+  <button class="add-line-btn" onclick="addLine()">+ Ajouter une ligne</button>
+
+  <!-- Rentabilité auto-calc (affiché si service = Rentabilité) -->
+  <div class="rentab-calc" id="rentab-calc-box" style="display:none;">
+    <div class="rc-title">🧮 Calcul automatique Moustachir Rentabilité</div>
+    <div class="rc-line"><span class="label">Honoraires consultant (débours)</span><span class="value" id="rc-honoraires">—</span></div>
+    <div class="rc-line"><span class="label">IFU 5% (retenue à la source)</span><span class="value" id="rc-ifu">—</span></div>
+    <div class="rc-line"><span class="label">Commission Moustachir 20%</span><span class="value" id="rc-commission">—</span></div>
+    <div class="rc-line"><span class="label">TVA sur commission (19%)</span><span class="value" id="rc-tva-comm">—</span></div>
+    <div class="rc-line"><span class="label">Total TTC client</span><span class="value" id="rc-total">—</span></div>
+  </div>
+
+  <!-- Totaux -->
+  <div class="invoice-totals" id="fac-totaux">
+    <div class="totals-row"><span>Total HT</span><span class="mono-num" id="tot-ht">0 DZD</span></div>
+    <div class="totals-row"><span>TVA</span><span class="mono-num" id="tot-tva">0 DZD</span></div>
+    <div class="totals-row grand"><span>Total TTC</span><span class="mono-num" id="tot-ttc">0 DZD</span></div>
+  </div>
+
+  <div class="form-section-label">Notes & conditions</div>
+  <div class="form-row single">
+    <div class="field">
+      <label>Notes facture</label>
+      <textarea id="fac-notes" placeholder="Conditions de paiement, références contrat, instructions bancaires…">Virement bancaire sous 30 jours. Référence : [N° Facture] dans l'objet du virement.</textarea>
+    </div>
+  </div>
+
+  <div class="panel-actions">
+    <button class="btn-secondary" onclick="closeFacture()">Annuler</button>
+    <button class="btn-secondary" onclick="saveFacture('Brouillon')">Sauvegarder brouillon</button>
+    <button class="btn-primary" onclick="saveFacture('Envoyée')">Émettre & envoyer</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL — RELANCE -->
+<div class="overlay-backdrop" id="overlay-relance">
+<div class="panel">
+  <button class="panel-close" onclick="closeRelance()">✕</button>
+  <h3>Lettre de relance</h3>
+  <div class="panel-sub">Relance automatique générée à partir des données de la facture en retard.</div>
+  <div class="form-row">
+    <div class="field"><label>Client</label><input type="text" id="rel-client" readonly></div>
+    <div class="field"><label>Montant dû (TTC)</label><input type="text" id="rel-montant" readonly></div>
+  </div>
+  <div class="form-row">
+    <div class="field"><label>N° relance</label>
+      <select id="rel-numero"><option>1ère relance (amiable)</option><option>2ème relance (ferme)</option><option>3ème relance (mise en demeure)</option></select>
+    </div>
+    <div class="field"><label>Canal</label>
+      <select id="rel-canal"><option>Email</option><option>Courrier</option><option>Appel téléphonique</option><option>WhatsApp</option></select>
+    </div>
+  </div>
+  <div class="form-row single">
+    <div class="field">
+      <label>Corps du message</label>
+      <textarea id="rel-body" style="min-height:120px;"></textarea>
+    </div>
+  </div>
+  <div class="panel-actions">
+    <button class="btn-secondary" onclick="closeRelance()">Annuler</button>
+    <button class="btn-primary" onclick="sendRelance()">Envoyer la relance</button>
+  </div>
+</div>
+</div>
+
+<div class="toast" id="toast"><span class="toast-icon">✓</span><span id="toast-msg">Action enregistrée</span></div>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const INVOICES = [
+  {id:'INV-2026-041',client:'VMS Algeria',service:'Rentabilité',ht:850000,tva:0,ttc:1011500,status:'Payée',date:'2026-03-01',echeance:'2026-03-15',retard:0},
+  {id:'INV-2026-042',client:'SOFITEX',service:'COM',ht:480000,tva:91200,ttc:571200,status:'Payée',date:'2026-03-15',echeance:'2026-04-01',retard:0},
+  {id:'INV-2026-043',client:'Jemmy Corp',service:'COM',ht:320000,tva:60800,ttc:380800,status:'En retard',date:'2026-04-15',echeance:'2026-05-15',retard:32},
+  {id:'INV-2026-044',client:'MDI Algiers',service:'Academy',ht:200000,tva:38000,ttc:238000,status:'Envoyée',date:'2026-06-01',echeance:'2026-07-01',retard:0},
+  {id:'INV-2026-045',client:'Octreopharm',service:'Consulting',ht:150000,tva:28500,ttc:178500,status:'Brouillon',date:'2026-06-15',echeance:'2026-07-15',retard:0},
+];
+
+const MARGINS = [
+  {service:'Rentabilité',ca:3200000,couts:640000,marge_brute:80,cac:15000,charges:120000,marge_nette:72,trend:'up'},
+  {service:'COM',ca:4250000,couts:2125000,marge_brute:50,cac:193,charges:350000,marge_nette:41,trend:'up'},
+  {service:'Consulting',ca:720000,couts:216000,marge_brute:70,cac:25000,charges:90000,marge_nette:55,trend:'stable'},
+  {service:'Academy',ca:980000,couts:490000,marge_brute:50,cac:45000,charges:120000,marge_nette:36,trend:'down'},
+  {service:'Idarati',ca:0,couts:0,marge_brute:0,cac:0,charges:0,marge_nette:0,trend:'neutral'},
+];
+
+const CLIENTS_FIN = [
+  {name:'VMS Algeria',services:'Rentabilité',ca:3200000,encaisse:3200000,creance:0,delai:28,ltv:'A+',risque:'Faible'},
+  {name:'SOFITEX',services:'COM',ca:2400000,encaisse:2400000,creance:0,delai:30,ltv:'A',risque:'Faible'},
+  {name:'Jemmy Corp',services:'COM',ca:1850000,encaisse:1469200,creance:380800,delai:48,ltv:'B',risque:'Élevé'},
+  {name:'MDI Algiers',services:'Academy',ca:980000,encaisse:742000,creance:238000,delai:35,ltv:'B+',risque:'Moyen'},
+  {name:'Octreopharm',services:'Consulting',ca:720000,encaisse:541500,creance:178500,delai:42,ltv:'C',risque:'Moyen'},
+];
+
+const RISKS = [
+  {client:'Jemmy Corp',montant:380800,jours:32,tranche:'31-60j',score:'Élevé'},
+  {client:'MDI Algiers',montant:238000,jours:0,tranche:'À venir',score:'Moyen'},
+  {client:'Octreopharm',montant:178500,jours:0,tranche:'À venir',score:'Moyen'},
+];
+
+const PIPELINE_OPPS = [
+  {name:'SAIFI Tarek',company:'Recyclage SA',service:'Rentabilité',agent:'Farid',stage:'Negotiation',value:500000,score:88,date:'2026-04-20'},
+  {name:'Yakid Promotion',company:'Yakid Immo',service:'COM',agent:'Touri Maroua',stage:'Proposal',value:120000,score:82,date:'2026-05-14'},
+  {name:'Toufik Oumahou',company:'ZR Express',service:'Consulting',agent:'Farid',stage:'Qualified',value:450000,score:78,date:'2026-05-10'},
+  {name:'Hachani Haroune',company:'Freelance',service:'Academy',agent:'Walid',stage:'Qualified',value:120000,score:61,date:'2026-05-18'},
+  {name:'Bouznadé Ali',company:'—',service:'Consulting',agent:'Hadjira',stage:'Contacted',value:0,score:22,date:'2026-04-20'},
+];
+
+const IDEAS = [
+  {icon:'⚡',title:'Génération de facture en 1 clic',desc:'Depuis une opportunité "Gagné" dans le CRM commercial, la facture pré-remplie (client, service, montant, TVA) est générée instantanément. Zéro re-saisie, zéro erreur.',tag:'tag-auto',tagLabel:'Automatisation'},
+  {icon:'🧮',title:'Calculateur Rentabilité intégré',desc:'Saisir le montant brut consultant → le système calcule automatiquement l\'IFU 5%, la commission Moustachir 20%, la TVA 19% et le total TTC. Basé sur l\'Article 10 du Journal Officiel 2018.',tag:'tag-auto',tagLabel:'Calcul auto'},
+  {icon:'📊',title:'Dashboard CA vs objectif',desc:'Jauge temps réel : CA réalisé vs objectif mensuel par service. Visible par le directeur et les commerciaux. Alerte automatique si le service est en dessous de 80% de l\'objectif en J-10.',tag:'tag-insight',tagLabel:'Intelligence'},
+  {icon:'⏰',title:'Relances automatiques intelligentes',desc:'Facture impayée à J+7 : email de rappel doux. J+15 : relance ferme avec PDF joint. J+30 : mise en demeure générée et envoi en WhatsApp. Chaque étape loggée dans l\'audit.',tag:'tag-alert',tagLabel:'Automatisation'},
+  {icon:'📈',title:'Tableau marge par commercial',desc:'Chaque vente est reliée à l\'agent commercial. La finance voit le CA, le coût d\'acquisition et la marge nette générés par chaque commercial — pour calculer leur rentabilité réelle.',tag:'tag-insight',tagLabel:'Intelligence'},
+  {icon:'🔗',title:'Lien direct CRM → Facture',desc:'Quand un commercial marque un lead "Gagné", le système envoie une notification à la finance avec un lien direct vers le formulaire de facturation pré-rempli. Délai de facturation réduit de 5 jours à 2h.',tag:'tag-integration',tagLabel:'Intégration'},
+  {icon:'📱',title:'Approbation facture sur mobile',desc:'Le directeur reçoit une notification push pour approuver toute facture > 500 000 DZD. Validation en un tap depuis l\'application mobile — workflow d\'approbation avec traçabilité.',tag:'tag-ux',tagLabel:'UX mobile'},
+  {icon:'🤖',title:'Score de risque automatique',desc:'Chaque client reçoit un score de risque (A+ à D) basé sur son historique de paiement, le montant de sa créance, et la durée de la relation. Mis à jour à chaque transaction.',tag:'tag-alert',tagLabel:'Intelligence'},
+  {icon:'📄',title:'Devis → Facture en un clic',desc:'Un devis accepté par le client (signature électronique) se transforme automatiquement en facture de 40% (acompte) + planification automatique de la facture de solde 60%.',tag:'tag-auto',tagLabel:'Automatisation'},
+  {icon:'💬',title:'WhatsApp pour les relances',desc:'Intégration de l\'API WhatsApp Business pour envoyer des relances personnalisées directement sur le numéro du client. Taux de réponse 3× supérieur aux emails pour le marché algérien.',tag:'tag-integration',tagLabel:'Intégration'},
+  {icon:'🎯',title:'CAC réel par service',desc:'En reliant les dépenses publicitaires (Meta, Google, événements) aux clients convertis par service, le système calcule un CAC réel par ligne — et identifie le canal le plus rentable.',tag:'tag-insight',tagLabel:'Intelligence'},
+  {icon:'📅',title:'Plan de trésorerie à 90 jours',desc:'Prévision automatique basée sur : factures envoyées (date échéance), opportunités en négociation (probabilité × valeur), dépenses récurrentes planifiées. Mise à jour en temps réel.',tag:'tag-insight',tagLabel:'Intelligence'},
+];
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+let chartsInstances = {};
+
+function switchView(viewId, tabEl){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById(viewId).classList.add('active');
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  if(tabEl) tabEl.classList.add('active');
+
+  // destroy old charts
+  Object.values(chartsInstances).forEach(c=>{try{c.destroy()}catch(e){}});
+  chartsInstances={};
+
+  setTimeout(()=>{
+    if(viewId==='v-dashboard') initDashCharts();
+    if(viewId==='v-factures') renderInvoices();
+    if(viewId==='v-marges') initMarginCharts();
+    if(viewId==='v-clients-fin') initClientFinCharts();
+    if(viewId==='v-risques') initRiskView();
+    if(viewId==='v-pipeline-input') renderPipelineInput();
+    if(viewId==='v-innovations') renderIdeas();
+  }, 30);
+}
+
+// ============================================================
+// CHARTS — DASHBOARD
+// ============================================================
+function initDashCharts(){
+  const months = ['Jan','Fév','Mar','Avr','Mai','Juin'];
+  const realized = [0,0,1582700,571200,0,380800];
+  const budgeted = [800000,900000,1200000,900000,1100000,1400000];
+
+  chartsInstances.caEvol = new Chart(document.getElementById('chart-ca-evol'),{
+    type:'bar',
+    data:{
+      labels:months,
+      datasets:[
+        {label:'Réalisé',data:realized,backgroundColor:'rgba(58,107,74,.75)',borderRadius:5,order:1},
+        {label:'Budgété',data:budgeted,type:'line',borderColor:'#E4DECF',borderWidth:2,borderDash:[5,4],pointRadius:3,fill:false,order:0}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{grid:{color:'rgba(0,0,0,.05)'},ticks:{callback:v=>v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000)+'k':v}}}}
+  });
+
+  chartsInstances.caRep = new Chart(document.getElementById('chart-ca-repartition'),{
+    type:'doughnut',
+    data:{
+      labels:['Rentabilité','COM','Consulting','Academy'],
+      datasets:[{data:[3200000,4250000,720000,980000],
+        backgroundColor:['#B8862F','#3A5A6B','#6B4A5E','#6B7A3A'],borderWidth:0,hoverOffset:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{family:'JetBrains Mono',size:11},padding:12}}}}
+  });
+
+  chartsInstances.cacCanal = new Chart(document.getElementById('chart-cac-canal'),{
+    type:'bar',
+    data:{
+      labels:['Événementiel','Marketing','Website','Classique'],
+      datasets:[{data:[0,193,0,0],backgroundColor:['#DAE0C4','#C4622D','#D0DDE3','#6B7A3A'],borderRadius:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{callback:v=>v+' DZD'}}}}
+  });
+
+  chartsInstances.marginSvc = new Chart(document.getElementById('chart-margin-service'),{
+    type:'bar',
+    data:{
+      labels:['Rentabilité','COM','Consulting','Academy'],
+      datasets:[{data:[80,50,70,50],backgroundColor:['#B8862F','#3A5A6B','#6B4A5E','#6B7A3A'],borderRadius:4}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:100,ticks:{callback:v=>v+'%'}}}}
+  });
+
+  chartsInstances.invStatus = new Chart(document.getElementById('chart-inv-status'),{
+    type:'doughnut',
+    data:{
+      labels:['Payée','Envoyée','En retard','Brouillon'],
+      datasets:[{data:[1582700,238000,380800,178500],
+        backgroundColor:['#6B7A3A','#3A5A6B','#8B3A4A','#C4C0B8'],borderWidth:0}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{family:'JetBrains Mono',size:11},padding:10}}}}
+  });
+}
+
+// ============================================================
+// CHARTS — MARGES
+// ============================================================
+function initMarginCharts(){
+  renderMarginTable();
+  renderDiagnostics();
+
+  chartsInstances.marginsCompare = new Chart(document.getElementById('chart-margins-compare'),{
+    type:'bar',
+    data:{
+      labels:['Rentabilité','COM','Consulting','Academy'],
+      datasets:[
+        {label:'Marge brute %',data:[80,50,70,50],backgroundColor:'rgba(58,107,74,.8)',borderRadius:5},
+        {label:'Marge nette %',data:[72,41,55,36],backgroundColor:'rgba(58,90,107,.7)',borderRadius:5}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{max:100,ticks:{callback:v=>v+'%'},grid:{color:'rgba(0,0,0,.04)'}}}
+    }
+  });
+
+  chartsInstances.revCost = new Chart(document.getElementById('chart-revenue-cost'),{
+    type:'bar',
+    data:{
+      labels:['Rentabilité','COM','Consulting','Academy'],
+      datasets:[
+        {label:'CA HT',data:[3200000,4250000,720000,980000],backgroundColor:'rgba(58,107,74,.75)',borderRadius:5},
+        {label:'Coûts directs',data:[640000,2125000,216000,490000],backgroundColor:'rgba(139,58,74,.6)',borderRadius:5}
+      ]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'k':v},grid:{color:'rgba(0,0,0,.04)'}}}
+    }
+  });
+}
+
+function renderMarginTable(){
+  const svcClass = {COM:'svc-com',Consulting:'svc-consulting',Academy:'svc-academy',Rentabilité:'svc-rentabilite',Idarati:'svc-idarati'};
+  const body = document.getElementById('margin-table-body');
+  if(!body) return;
+  body.innerHTML = MARGINS.filter(m=>m.ca>0).map(m=>`
+    <tr>
+      <td><span class="svc-tag ${svcClass[m.service]||''}">${m.service}</span></td>
+      <td class="mono-num">${m.ca.toLocaleString('fr-DZ')} DZD</td>
+      <td class="mono-num" style="color:var(--bordeaux)">${m.couts.toLocaleString('fr-DZ')} DZD</td>
+      <td>
+        <div class="margin-bar-wrap">
+          <div class="margin-bar-bg"><div class="margin-bar-fill" style="width:${m.marge_brute}%;background:var(--revenue)"></div></div>
+          <span class="mono-num" style="color:var(--revenue)">${m.marge_brute}%</span>
+        </div>
+      </td>
+      <td class="mono-num">${m.cac.toLocaleString('fr-DZ')} DZD</td>
+      <td class="mono-num">${m.charges.toLocaleString('fr-DZ')} DZD</td>
+      <td>
+        <div class="margin-bar-wrap">
+          <div class="margin-bar-bg"><div class="margin-bar-fill" style="width:${m.marge_nette}%;background:var(--slate)"></div></div>
+          <span class="mono-num" style="color:var(--slate)">${m.marge_nette}%</span>
+        </div>
+      </td>
+      <td class="profit-indicator">
+        <span class="profit-arrow ${m.trend==='up'?'up':m.trend==='down'?'down':''}">${m.trend==='up'?'↑':m.trend==='down'?'↓':'→'}</span>
+        <span style="font-size:11.5px;color:var(--ink-soft)">${m.trend==='up'?'Croissance':m.trend==='down'?'En baisse':'Stable'}</span>
+      </td>
+    </tr>`).join('');
+}
+
+function renderDiagnostics(){
+  const diag = [
+    {q:'Le CA est-il en croissance ?',a:'<b style="color:var(--revenue)">Oui — +18% vs 2025</b>. Rentabilité (+34%) et COM (+12%) tirent la croissance. Cible direction : +25%.',status:'up'},
+    {q:'Le CAC est-il rentable ?',a:'<b style="color:var(--amber)">Partiel.</b> CAC estimé à <b>193 DZD/lead</b> (marketing digital uniquement). Sans données de conversion, le CAC réel par client converti reste incalculable.',status:'warn'},
+    {q:'Quelle est la marge réelle par service ?',a:'<b>Rentabilité : 72%</b> nette (meilleure ligne). <b>COM : 41%</b>. <b>Consulting : 55%</b>. <b>Academy : 36%</b> (à améliorer via volume).',status:'info'},
+  ];
+  const el = document.getElementById('diagnostic-cards');
+  if(!el) return;
+  el.innerHTML = diag.map(d=>`
+    <div style="background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:.04em;color:${d.status==='up'?'var(--revenue)':d.status==='warn'?'var(--amber)':'var(--slate)'};margin-bottom:6px;">
+        ${d.status==='up'?'✓ Réponse':d.status==='warn'?'⚠ Réponse':'→ Réponse'}
+      </div>
+      <div style="font-family:'Fraunces',serif;font-size:14px;font-weight:400;margin-bottom:8px;">${d.q}</div>
+      <div style="font-size:12.5px;color:var(--ink-soft);line-height:1.55;">${d.a}</div>
+    </div>`).join('');
+}
+
+// ============================================================
+// CHARTS — CLIENTS FIN
+// ============================================================
+function initClientFinCharts(){
+  renderClientFinTable();
+
+  chartsInstances.ltv = new Chart(document.getElementById('chart-ltv'),{
+    type:'bar',
+    data:{
+      labels:CLIENTS_FIN.map(c=>c.name),
+      datasets:[{data:CLIENTS_FIN.map(c=>c.ca),backgroundColor:['#3A5A6B','#6B7A3A','#C4622D','#B8862F','#6B4A5E'],borderRadius:5}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>v>=1000000?(v/1000000).toFixed(1)+'M':v>=1000?(v/1000).toFixed(0)+'k':v}}}}
+  });
+
+  chartsInstances.delay = new Chart(document.getElementById('chart-delay'),{
+    type:'bar',
+    data:{
+      labels:CLIENTS_FIN.map(c=>c.name),
+      datasets:[{data:CLIENTS_FIN.map(c=>c.delai),
+        backgroundColor:CLIENTS_FIN.map(c=>c.delai>45?'rgba(139,58,74,.7)':c.delai>35?'rgba(184,134,47,.7)':'rgba(107,122,58,.7)'),borderRadius:5}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{y:{ticks:{callback:v=>v+' j'}}}}
+  });
+}
+
+function renderClientFinTable(){
+  const body = document.getElementById('clients-fin-body');
+  if(!body) return;
+  const ltvColors = {'A+':'var(--olive)','A':'var(--olive)','B+':'var(--slate)','B':'var(--amber)','C':'var(--bordeaux)'};
+  const riskClass = {'Faible':'risk-faible','Moyen':'risk-moyen','Élevé':'risk-eleve'};
+  body.innerHTML = CLIENTS_FIN.map(c=>`
+    <tr>
+      <td><span style="font-weight:600;">${c.name}</span></td>
+      <td><span class="svc-tag svc-${c.services.toLowerCase()}">${c.services}</span></td>
+      <td class="mono-num">${c.ca.toLocaleString('fr-DZ')} DZD</td>
+      <td class="mono-num" style="color:var(--revenue)">${c.encaisse.toLocaleString('fr-DZ')} DZD</td>
+      <td class="mono-num" style="color:${c.creance>0?'var(--bordeaux)':'var(--ink-soft)'}">
+        ${c.creance>0?c.creance.toLocaleString('fr-DZ')+' DZD':'—'}
+      </td>
+      <td class="mono-num">${c.delai} jours</td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:${ltvColors[c.ltv]||'var(--ink)'}">${c.ltv}</span></td>
+      <td><span class="risk-tag ${riskClass[c.risque]||''}">${c.risque}</span></td>
+      <td>
+        <button class="btn-slate" style="font-size:10.5px;padding:5px 10px;" onclick="openRelance('${c.name}')">Relancer</button>
+      </td>
+    </tr>`).join('');
+}
+
+// ============================================================
+// RISK VIEW
+// ============================================================
+function initRiskView(){
+  const body = document.getElementById('risk-table-body');
+  if(!body) return;
+  body.innerHTML = RISKS.map(r=>`
+    <tr>
+      <td><span style="font-weight:600;">${r.client}</span></td>
+      <td class="mono-num" style="color:${r.montant>300000?'var(--bordeaux)':'var(--ink)'}">${r.montant.toLocaleString('fr-DZ')} DZD</td>
+      <td class="mono-num">${r.jours>0?r.jours+' j':'-'}</td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:3px 8px;border-radius:8px;background:var(--paper-2);">${r.tranche}</span></td>
+      <td><span class="risk-tag risk-${r.score==='Élevé'?'eleve':r.score==='Moyen'?'moyen':'faible'}">${r.score}</span></td>
+      <td><button class="btn-bordeaux" style="font-size:10.5px;padding:5px 10px;" onclick="openRelance('${r.client}')">Relancer</button></td>
+    </tr>`).join('');
+
+  const relanceList = document.getElementById('relance-list');
+  if(relanceList){
+    relanceList.innerHTML = [
+      {client:'Jemmy Corp',date:'Aujourd\'hui',type:'2ème relance (ferme)',urgent:true},
+      {client:'MDI Algiers',date:'25 juin',type:'1ère relance (rappel)',urgent:false},
+      {client:'Octreopharm',date:'30 juin',type:'Rappel doux',urgent:false},
+    ].map(r=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border:1px solid ${r.urgent?'#E8C5B3':'var(--line)'};border-radius:7px;background:${r.urgent?'var(--alert-bg)':'#fff'};">
+        <div>
+          <div style="font-weight:600;font-size:13px;">${r.client}</div>
+          <div style="font-size:11.5px;color:var(--ink-soft);">${r.type} · ${r.date}</div>
+        </div>
+        <button class="btn-bordeaux" style="font-size:10px;padding:4px 9px;" onclick="openRelance('${r.client}')">Envoyer</button>
+      </div>`).join('');
+  }
+
+  chartsInstances.aging = new Chart(document.getElementById('chart-aging'),{
+    type:'pie',
+    data:{
+      labels:['< 30j','31-60j','61-90j','> 90j'],
+      datasets:[{data:[416500,380800,0,0],backgroundColor:['#B8862F','#8B3A4A','#6B1E2A','#3d0b13'],borderWidth:0}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{family:'JetBrains Mono',size:10},padding:8}}}}
+  });
+}
+
+// ============================================================
+// PIPELINE INPUT
+// ============================================================
+function renderPipelineInput(){
+  const feedEl = document.getElementById('pipeline-feed-list');
+  if(!feedEl) return;
+  const hot = PIPELINE_OPPS.filter(o=>o.stage==='Negotiation'||o.stage==='Proposal');
+  feedEl.innerHTML = hot.map(o=>`
+    <div class="feed-item" onclick="openFactureFromOpp('${o.name}','${o.service}',${o.value})">
+      <div class="feed-dot ${o.stage==='Negotiation'?'negotiation':'proposal'}"></div>
+      <div class="feed-body">
+        <div class="feed-name">${o.name} <span style="font-size:11px;font-weight:400;color:var(--ink-soft);">— ${o.company}</span></div>
+        <div class="feed-detail">${o.service} · Commercial : ${o.agent} · Stade : <b>${o.stage}</b> · Score ${o.score}/100</div>
+      </div>
+      <span class="feed-value">${o.value>0?o.value.toLocaleString('fr-DZ')+' DZD HT':'—'}</span>
+      <button class="feed-action" onclick="event.stopPropagation();openFactureFromOpp('${o.name}','${o.service}',${o.value})">Générer facture</button>
+    </div>`).join('');
+
+  const body = document.getElementById('pipeline-table-body');
+  if(!body) return;
+  const stageColors={'Won':'#3d4720','Negotiation':'var(--slate)','Proposal':'var(--amber)','Qualified':'var(--bordeaux)','Contacted':'#555','New':'var(--ink-soft)'};
+  const svcClass={COM:'svc-com',Consulting:'svc-consulting',Academy:'svc-academy',Rentabilité:'svc-rentabilite'};
+  body.innerHTML = PIPELINE_OPPS.map(o=>`
+    <tr>
+      <td><span style="font-weight:600;">${o.name}</span><br><span style="font-size:11.5px;color:var(--ink-soft);">${o.company}</span></td>
+      <td><span class="svc-tag ${svcClass[o.service]||''}">${o.service}</span></td>
+      <td>${o.agent}</td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;padding:3px 9px;border-radius:10px;background:var(--paper-2);color:${stageColors[o.stage]||'var(--ink-soft)'};">${o.stage}</span></td>
+      <td class="mono-num">${o.value>0?o.value.toLocaleString('fr-DZ')+' DZD':'—'}</td>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:${o.score>=70?'var(--olive)':o.score>=40?'var(--amber)':'var(--bordeaux)'}">${o.score}/100</span></td>
+      <td style="font-size:12px;color:var(--ink-soft);">${o.date}</td>
+      <td>
+        ${o.stage==='Negotiation'||o.stage==='Proposal'
+          ?`<button class="btn-olive" onclick="openFactureFromOpp('${o.name}','${o.service}',${o.value})">→ Générer facture</button>`
+          :`<span style="font-family:'JetBrains Mono',monospace;font-size:10.5px;color:var(--ink-soft);">En cours</span>`}
+      </td>
+    </tr>`).join('');
+}
+
+// ============================================================
+// INVOICES TABLE
+// ============================================================
+let invSortField = 'date';
+let invFilter = '';
+
+function filterInv(status){
+  document.getElementById('invStatusFilter').value = status;
+  renderInvoices();
+  switchView('v-factures', document.querySelectorAll('.nav-tab')[2]);
+}
+
+function sortInv(field, el){
+  invSortField = field;
+  document.querySelectorAll('.sort-pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  renderInvoices();
+}
+
+function renderInvoices(){
+  const search = (document.getElementById('invSearch')||{}).value||'';
+  const statusF = (document.getElementById('invStatusFilter')||{}).value||'';
+  const svcF = (document.getElementById('invSvcFilter')||{}).value||'';
+
+  let list = INVOICES.filter(i=>{
+    const matchSearch = !search || i.id.toLowerCase().includes(search.toLowerCase()) || i.client.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = !statusF || i.status===statusF;
+    const matchSvc = !svcF || i.service===svcF;
+    return matchSearch && matchStatus && matchSvc;
+  });
+
+  if(invSortField==='montant') list.sort((a,b)=>b.ttc-a.ttc);
+  else if(invSortField==='echeance') list.sort((a,b)=>a.echeance.localeCompare(b.echeance));
+  else list.sort((a,b)=>b.date.localeCompare(a.date));
+
+  const body = document.getElementById('inv-table-body');
+  if(!body) return;
+  const statusClass = {'Payée':'status-payee','Envoyée':'status-envoyee','En retard':'status-en-retard','Brouillon':'status-brouillon','Partiel':'status-partiel'};
+  body.innerHTML = list.map(i=>`
+    <tr>
+      <td><span style="font-family:'JetBrains Mono',monospace;font-weight:600;font-size:12px;">${i.id}</span></td>
+      <td><span style="font-weight:500;">${i.client}</span></td>
+      <td><span class="svc-tag svc-${i.service.toLowerCase()}">${i.service}</span></td>
+      <td class="mono-num">${i.ht.toLocaleString('fr-DZ')} DZD</td>
+      <td class="mono-num" style="color:var(--ink-soft);">${i.tva.toLocaleString('fr-DZ')} DZD</td>
+      <td class="mono-num" style="font-weight:600;">${i.ttc.toLocaleString('fr-DZ')} DZD</td>
+      <td><span class="status-tag ${statusClass[i.status]||'status-brouillon'}">${i.status}</span></td>
+      <td style="font-size:12px;">${i.echeance}</td>
+      <td>${i.retard>0?`<span style="font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;color:var(--bordeaux);">+${i.retard}j</span>`:'<span style="color:var(--ink-soft);font-size:11.5px;">—</span>'}</td>
+      <td style="display:flex;gap:4px;flex-wrap:nowrap;">
+        <button class="icon-btn" title="Voir">👁</button>
+        ${i.status==='Brouillon'?`<button class="btn-olive" style="font-size:10px;padding:4px 9px;" onclick="saveFacture('Envoyée')">Émettre</button>`:''}
+        ${i.status==='En retard'||i.status==='Envoyée'?`<button class="btn-bordeaux" style="font-size:10px;padding:4px 9px;" onclick="openRelance('${i.client}')">Relancer</button>`:''}
+        ${i.status==='Envoyée'||i.status==='Partiel'?`<button class="btn-olive" style="font-size:10px;padding:4px 9px;" onclick="showToast('Paiement enregistré ✓')">Encaisser</button>`:''}
+      </td>
+    </tr>`).join('');
+
+  const pageInfo = document.getElementById('inv-page-info');
+  if(pageInfo) pageInfo.textContent = `${list.length} facture${list.length>1?'s':''} affichée${list.length>1?'s':''}`;
+}
+
+// ============================================================
+// IDEAS
+// ============================================================
+function renderIdeas(){
+  const el = document.getElementById('ideas-grid');
+  if(!el) return;
+  el.innerHTML = IDEAS.map(i=>`
+    <div class="idea-card">
+      <div class="idea-icon">${i.icon}</div>
+      <div class="idea-title">${i.title}</div>
+      <div class="idea-desc">${i.desc}</div>
+      <span class="idea-tag ${i.tag}">${i.tagLabel}</span>
+    </div>`).join('');
+}
+
+// ============================================================
+// FACTURE MODAL
+// ============================================================
+let lineCount = 0;
+const TAX_MAP = {COM:19,Consulting:19,Academy:19,Rentabilité:0,Idarati:19};
+
+function openFacture(){
+  lineCount = 0;
+  document.getElementById('line-items-container').innerHTML='';
+  document.getElementById('fac-source').value='';
+  document.getElementById('fac-client').value='';
+  document.getElementById('fac-service').value='';
+  document.getElementById('rentab-calc-box').style.display='none';
+  addLine();
+  updateTotals();
+  document.getElementById('overlay-facture').classList.add('show');
+}
+
+function openFactureFromOpp(name, service, value){
+  openFacture();
+  document.getElementById('fac-client').value = name;
+  document.getElementById('fac-service').value = service;
+  if(value>0){
+    const firstHt = document.querySelector('.li-ht');
+    if(firstHt) firstHt.value = value;
+    const firstDesc = document.querySelector('.li-desc');
+    if(firstDesc) firstDesc.value = `Mission ${service} — ${name}`;
+    const firstTva = document.querySelector('.li-tva');
+    if(firstTva) firstTva.value = TAX_MAP[service]||19;
+  }
+  onServiceChange();
+  updateTotals();
+  setTimeout(()=>updateTotals(),50);
+}
+
+function closeFacture(){ document.getElementById('overlay-facture').classList.remove('show'); }
+
+function prefillFromSource(){
+  const v = document.getElementById('fac-source').value;
+  const presets = {
+    saifi:{client:'SAIFI Tarek — Recyclage SA',service:'Rentabilité',ht:500000,desc:'Mission Rentabilité — SAIFI Tarek — 2026'},
+    yakid:{client:'Yakid Promotion Immobilière',service:'COM',ht:120000,desc:'Corporate Website — Yakid Immo'},
+    toufik:{client:'Toufik Oumahou / ZR Express',service:'Consulting',ht:450000,desc:'Mission de Consulting stratégique — ZR Express'},
+    mdi:{client:'MDI Algiers Business School',service:'Academy',ht:200000,desc:'Programme de formation — MDI'},
+    vms:{client:'VMS Algeria',service:'Rentabilité',ht:850000,desc:'Mission Rentabilité — VMS Algeria — Q2 2026'},
+  };
+  const p = presets[v];
+  if(!p) return;
+  document.getElementById('fac-client').value = p.client;
+  document.getElementById('fac-service').value = p.service;
+  onServiceChange();
+  const firstHt = document.querySelector('.li-ht');
+  if(firstHt) firstHt.value = p.ht;
+  const firstDesc = document.querySelector('.li-desc');
+  if(firstDesc) firstDesc.value = p.desc;
+  const firstTva = document.querySelector('.li-tva');
+  if(firstTva) firstTva.value = TAX_MAP[p.service]||19;
+  updateTotals();
+}
+
+function onServiceChange(){
+  const svc = document.getElementById('fac-service').value;
+  const box = document.getElementById('rentab-calc-box');
+  if(svc==='Rentabilité'){ box.style.display='block'; updateRentabCalc(); }
+  else { box.style.display='none'; }
+  // Update TVA on all lines
+  document.querySelectorAll('.li-tva').forEach(el=>el.value = TAX_MAP[svc]||19);
+  updateTotals();
+}
+
+function addLine(){
+  lineCount++;
+  const id = lineCount;
+  const container = document.getElementById('line-items-container');
+  const row = document.createElement('div');
+  row.className='line-item-row';
+  row.id='line-'+id;
+  row.innerHTML=`
+    <input type="text" class="li-desc" placeholder="Description de la prestation" value="">
+    <input type="number" class="li-qty" value="1" min="1" oninput="updateTotals()">
+    <input type="number" class="li-ht" placeholder="0" min="0" oninput="updateTotals()">
+    <input type="number" class="li-tva" value="19" min="0" max="100" oninput="updateTotals()">
+    <span class="li-total" id="li-total-${id}">0 DZD</span>
+    <button class="li-remove" onclick="removeLine(${id})" title="Supprimer">×</button>
+  `;
+  container.appendChild(row);
+}
+
+function removeLine(id){
+  const el = document.getElementById('line-'+id);
+  if(el) el.remove();
+  updateTotals();
+}
+
+function updateTotals(){
+  let totalHT=0, totalTVA=0;
+  document.querySelectorAll('.line-item-row').forEach(row=>{
+    const qty = parseFloat(row.querySelector('.li-qty')?.value||1)||1;
+    const ht = parseFloat(row.querySelector('.li-ht')?.value||0)||0;
+    const tva = parseFloat(row.querySelector('.li-tva')?.value||0)||0;
+    const lineHT = qty*ht;
+    const lineTVA = lineHT*(tva/100);
+    const lineTTC = lineHT+lineTVA;
+    const totEl = row.querySelector('.li-total');
+    if(totEl) totEl.textContent = Math.round(lineTTC).toLocaleString('fr-DZ')+' DZD';
+    totalHT += lineHT;
+    totalTVA += lineTVA;
+  });
+  const setEl = (id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  setEl('tot-ht',Math.round(totalHT).toLocaleString('fr-DZ')+' DZD');
+  setEl('tot-tva',Math.round(totalTVA).toLocaleString('fr-DZ')+' DZD');
+  setEl('tot-ttc',Math.round(totalHT+totalTVA).toLocaleString('fr-DZ')+' DZD');
+
+  const svc = document.getElementById('fac-service')?.value;
+  if(svc==='Rentabilité') updateRentabCalc();
+}
+
+function updateRentabCalc(){
+  const firstHt = parseFloat(document.querySelector('.li-ht')?.value||0)||0;
+  const qty = parseFloat(document.querySelector('.li-qty')?.value||1)||1;
+  const montant = firstHt * qty;
+  const ifu = montant*0.05;
+  const commission = montant*0.20;
+  const tvaComm = commission*0.19;
+  const total = montant+ifu+commission+tvaComm;
+  const fmt = v=>Math.round(v).toLocaleString('fr-DZ')+' DZD';
+  const setEl=(id,val)=>{const el=document.getElementById(id);if(el)el.textContent=val;};
+  setEl('rc-honoraires',fmt(montant));
+  setEl('rc-ifu',fmt(ifu));
+  setEl('rc-commission',fmt(commission));
+  setEl('rc-tva-comm',fmt(tvaComm));
+  setEl('rc-total',fmt(total));
+}
+
+function saveFacture(status){
+  closeFacture();
+  showToast(`Facture ${status==='Envoyée'?'émise et envoyée':'sauvegardée en brouillon'} ✓`);
+}
+
+// ============================================================
+// RELANCE MODAL
+// ============================================================
+function openRelance(clientName){
+  const inv = INVOICES.find(i=>i.client===clientName);
+  document.getElementById('rel-client').value = clientName;
+  document.getElementById('rel-montant').value = inv ? inv.ttc.toLocaleString('fr-DZ')+' DZD TTC' : '—';
+  document.getElementById('rel-body').value = `Madame, Monsieur,
+
+Nous vous contactons concernant la facture ${inv?.id||'N°—'} d'un montant de ${inv?inv.ttc.toLocaleString('fr-DZ')+' DZD TTC':'—'}, arrivée à échéance le ${inv?.echeance||'—'}.
+
+Nous vous serions reconnaissants de bien vouloir procéder au règlement dans les meilleurs délais par virement bancaire.
+
+Pour toute question, n'hésitez pas à nous contacter.
+
+Cordialement,
+L'équipe Finance — Moustachir`;
+  document.getElementById('overlay-relance').classList.add('show');
+}
+
+function closeRelance(){ document.getElementById('overlay-relance').classList.remove('show'); }
+function sendRelance(){ closeRelance(); showToast('Relance envoyée ✓'); }
+
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg){
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// ============================================================
+// EXPORT
+// ============================================================
+function exportData(){ showToast('Export Excel en cours… ✓'); }
+
+// ============================================================
+// DASHBOARD PERIOD SWITCH
+// ============================================================
+function updateDashPeriod(){
+  const p = document.getElementById('periodFilter').value;
+  const caMap={ytd:'9 150 000',q2:'5 440 000',q1:'3 710 000','12m':'11 200 000'};
+  const growthMap={ytd:'+18%',q2:'+22%',q1:'+14%','12m':'+21%'};
+  const cacEl=document.getElementById('kpi-ca');
+  const growEl=document.getElementById('kpi-growth');
+  if(cacEl)cacEl.textContent=caMap[p]||'—';
+  if(growEl)growEl.textContent=growthMap[p]||'—';
+  showToast(`Période : ${p.toUpperCase()} chargée`);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded',()=>{
+  // add initial invoice line
+  addLine();
+  initDashCharts();
+});
+
+// Close modals on backdrop click
+document.querySelectorAll('.overlay-backdrop').forEach(o=>{
+  o.addEventListener('click',e=>{if(e.target===o)o.classList.remove('show');});
+});
+</script>
+</body>
+</html>
